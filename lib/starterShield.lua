@@ -47,8 +47,15 @@ end
 --    unspecified duration is default of 10 ms
 --    this is dull for green, but bright for read and blue
 --    assumes cord.enter_loop() is in effect to schedule filaments
-LED.flash=function(color,duration)
--- TODO
+LED.flash=function(color,duration, times)
+   local pin = LED.pins[color] or LED.pins["red2"]
+   times = times or 1
+   duration = duration or 10
+   storm.io.set(1,storm.io[pin])
+   storm.os.invokeLater(duration*storm.os.MILLISECOND,
+			function() 
+			   storm.io.set(0,storm.io[pin]) 
+			end)
 end
 
 ----------------------------------------------
@@ -58,11 +65,28 @@ end
 local Buzz = {}
 
 Buzz.go = function(delay)
--- TODO
+   delay = delay or 0
+   -- configure buzzer pin for output
+   storm.io.set_mode(storm.io.OUTPUT, storm.io.D6)
+   Buzz.run = true
+   -- create buzzer filament and run till stopped externally
+   -- this demonstrates the await pattern in which
+   -- the filiment is suspended until an asynchronous call 
+   -- completes
+   cord.new(function()
+	       while Buzz.run do
+		  storm.io.set(1,storm.io.D6)
+		  storm.io.set(0,storm.io.D6)	       
+		  if (delay == 0) then cord.yield()
+		  else cord.await(storm.os.invokeLater, 
+				  delay*storm.os.MILLISECOND)
+		  end
+	       end
+	    end)
 end
 
 Buzz.stop = function()
--- TODO
+   Buzz.run = false		-- stop Buzz.go partner
 end
 
 ----------------------------------------------
@@ -71,14 +95,21 @@ end
 ----------------------------------------------
 local Button = {}
 
-Button.start = function() 
--- TODO
+Button.pins = {"D9","D10","D11"}
+
+Button.start = function()
+   -- set buttons as inputs
+   storm.io.set_mode(storm.io.INPUT,   
+		     storm.io.D9, storm.io.D10, storm.io.D11)
+   -- enable internal resistor pullups (none on board)
+   storm.io.set_pull(storm.io.PULL_UP, 
+		     storm.io.D9, storm.io.D10, storm.io.D11)
 end
 
 -- Get the current state of the button
 -- can be used when poling buttons
 Button.pressed = function(button) 
--- TODO
+   return 1-storm.io.get(storm.io[Button.pins[button]]) 
 end
 
 -------------------
@@ -93,15 +124,25 @@ end
 -- none of these are debounced.
 -------------------
 Button.whenever = function(button, transition, action)
--- TODO
+   -- register call back to fire when button is pressed
+   local pin = Button.pins[button]
+   storm.io.watch_all(storm.io[transition], storm.io[pin], action)
 end
 
 Button.when = function(button, transition, action)
--- TODO
+   -- register call back to fire when button is pressed
+   local pin = Button.pins[button]
+   storm.io.watch_single(storm.io[transition], storm.io[pin], action)
 end
 
 Button.wait = function(button)
--- TODO
+-- Wait on a button press
+--   suspend execution of the filament
+--   resume and return when transition occurs
+   local pin = Button.pins[button]
+   cord.await(storm.io.watch_single,
+	      storm.io.FALLING, 
+	      storm.io[pin])
 end
 
 ----------------------------------------------
