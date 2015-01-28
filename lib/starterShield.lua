@@ -117,7 +117,7 @@ Button.wheneverFalling = function(action)
     storm.io.watch_all(storm.io.FALLING, storm.io.D10, action)
 end
 
-Button.DEBOUNCE_DURATION = 10
+Button.DEBOUNCE_DURATION = 250
 
 Button.whenever = function(button, transition, action)
     local pin = storm.io[Button.pins[button]]
@@ -134,20 +134,48 @@ Button.wait = function(button)
     cord.await(storm.io.watch_single, storm.io.FALLING, pin)
 end
 
--- A version of Button.whenever that is debounced. Whenever a button is pressed, waits
--- for a fixed time before registering any additional events.
--- The watch is returned in an array-like table, at index 0. The element at index 0 may
--- change at any time (so don't take it out and hold a reference to it) but cancelling
--- it with storm.io.cancel_watch will make it stop watching for the event.
-Button.whenever_debounced = function(button, transition, action)
+-- A version of Button.whenever that is more reliable. Whenever a button is pressed, waits
+-- for a fixed time before registering any additional events, largely preventing the
+-- action from ocurring multiple times.
+-- The watch is returned in an array-like table. To cancel the watch, cancel the first
+-- element with storm.io.watch_cancel and cancel the second element IF IT IS NOT NIL
+-- with storm.os.cancel.
+Button.whenever_gap = function(button, transition, action)
     local pin = storm.io[Button.pins[button]]
-    local a = {}
+    local a = {[0]=nil, [1]=nil}
     a[0] = storm.io.watch_single(storm.io[transition], pin, function ()
-        cord.await(storm.os.invokeLater, Button.DEBOUNCE_DURATION * storm.os.MILLISECOND)
         action()
-        a[0] = Button.whenever_debounced(button, transition, action)
+        a[1] = storm.os.invokeLater(Button.DEBOUNCE_DURATION * storm.os.MILLISECOND, function ()
+            local new = Button.whenever_debounced(button, transition, action)
+            a[0] = new[0]
+            a[1] = new[1]
+            end)
     end)
     return a
+end
+
+Button.whenever_debounced2 = function(button, transition, action)
+    local opposing = "CHANGE"
+    if transition == "RISING" then
+        opposing = "FALLING"
+    elseif transition == "FALLING" then
+        opposing = "RISING"
+    end
+    local pin = storm.io[Button.pins[button]]
+    storm.io.watch_single(storm.io[transition], pin, function ()
+        local restarted = false
+        local plannedActuation = storm.os.invokeLater(Button.DEBOUNCE_DURATION * storm.os.MILLISECOND, function ()
+            Button.whenever_debounced2(button, transition, action)
+            restarted = true
+            action()
+        end)
+        storm.io.watch_single(storm.io[opposing], pin, function ()
+            storm.os.cancel(plannedActuation)
+            if not restarted then
+                Button.whenever_debounced2(button, transition, action)
+            end
+        end)
+    end)
 end
 
 ----------------------------------------------
