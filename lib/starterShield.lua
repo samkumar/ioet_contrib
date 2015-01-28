@@ -130,41 +130,24 @@ Button.when = function(button, transition, action)
 end
 
 Button.wait = function(button)
--- TODO
+    local pin = storm.io[Button.pins[button]]
+    cord.await(storm.io.watch_single, storm.io.FALLING, pin)
 end
 
+-- A version of Button.whenever that is debounced. Whenever a button is pressed, waits
+-- for a fixed time before registering any additional events.
+-- The watch is returned in an array-like table, at index 0. The element at index 0 may
+-- change at any time (so don't take it out and hold a reference to it) but cancelling
+-- it with storm.io.cancel_watch will make it stop watching for the event.
 Button.whenever_debounced = function(button, transition, action)
-    local opposing = "CHANGE"
-    if transition == "RISING" then
-        opposing = "FALLING"
-    elseif transition == "FALLING" then
-        opposing = "RISING"
-    end
     local pin = storm.io[Button.pins[button]]
-    return storm.io.watch_all(storm.io[transition], pin, function ()
-        print("got action")
-        local plannedActuation = storm.os.invokeLater(Button.DEBOUNCE_DURATION * storm.os.MILLISECOND, action)
-        storm.io.watch_single(storm.io[opposing], pin, function ()
-            print("cancelling action")
-            storm.os.cancel(plannedActuation)
-        end)
+    local a = {}
+    a[0] = storm.io.watch_single(storm.io[transition], pin, function ()
+        cord.await(storm.os.invokeLater, Button.DEBOUNCE_DURATION * storm.os.MILLISECOND)
+        action()
+        a[0] = Button.whenever_debounced(button, transition, action)
     end)
-end
-
-Button.when_debounced = function(button, transition, action)
-    local opposing = "CHANGE"
-    if transition == "RISING" then
-        opposing = "FALLING"
-    elseif transition == "FALLING" then
-        opposing = "RISING"
-    end
-    local pin = storm.io[Button.pins[button]]
-    return storm.io.watch_single(storm.io[transition], pin, function ()
-        local plannedActuation = storm.os.invokeLater(Button.DEBOUNCE_DURATION * storm.os.MILLISECOND, action)
-        storm.io.watch_single(storm.io[opposing], pin, function ()
-            storm.os.cancel(plannedActuation)
-        end)
-    end)
+    return a
 end
 
 ----------------------------------------------
