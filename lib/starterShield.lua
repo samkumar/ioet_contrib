@@ -69,12 +69,36 @@ end
 ----------------------------------------------
 local Buzz = {}
 
-Buzz.go = function(delay)
--- TODO
+Buzz.start = function ()
+    storm.io.set_mode(storm.io.OUTPUT, storm.io.D6)
+end
+
+Buzz.play_waveform = function (on_time, off_time)
+    Buzz.continue_buzzing = true
+    storm.os.invokeLater(on_time, function ()
+        storm.io.set(1, storm.io.D6)
+        storm.os.invokeLater(off_time, function ()
+            storm.io.set(0, storm.io.D6)
+            if Buzz.continue_buzzing then
+                Buzz.play(on_time, off_time)
+            end
+        end)
+    end)
+end
+
+Buzz.go = function(period)
+    Buzz.continue_buzzing = true
+    storm.os.invokeLater(period, function ()
+        storm.io.set(1, storm.io.D6)
+        storm.io.set(0, storm.io.D6)
+        if Buzz.continue_buzzing then
+            Buzz.go(period)
+        end
+    end)
 end
 
 Buzz.stop = function()
--- TODO
+    Buzz.continue_buzzing = false
 end
 
 ----------------------------------------------
