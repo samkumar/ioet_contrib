@@ -57,6 +57,7 @@ cord.enter_loop = function ()
             end
         end
         storm.os.kyield()
+        collectgarbage("collect")
         if ranone then
             storm.os.run_callback()
         else
