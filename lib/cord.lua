@@ -38,31 +38,42 @@ end
 
 cord.enter_loop = function ()
     while true do
-        local ranone = false
+        local ro = false
+        local s
         for i,v in pairs(cord._cors) do
-            if (v.s == cord._READY) then
-                ranone = true
+            if v.s == cord._READY or v.s == cord._PROMISEDONE then
+                ro = true
                 cord._activeidx = i
-                coroutine.resume(v.c)
-                if (coroutine.status(v.c) == "dead" or v.k) then
-                    cord._cors[i] = nil
-                end
-            elseif (v.s == cord._PROMISEDONE) then
-                cord._activeidx = i;
                 v.s = cord._READY
-                coroutine.resume(v.c, unpack(v.rv))
+                s, v.t, v.x, v.a= coroutine.resume(v.c, v.rv and unpack(v.rv) or nil)
                 if (coroutine.status(v.c) == "dead" or v.k) then
                     cord._cors[i] = nil
                 end
             end
         end
-        storm.os.kyield()
         collectgarbage("collect")
-        if ranone then
+        if ro then
             storm.os.run_callback()
         else
             storm.os.wait_callback() -- go to sleep
         end
+    end
+end
+
+cord.nc = function(f, ...)
+    local c = cord._cors[cord._activeidx]
+    f(...) -- call the head function
+    while c.t ~= nil do --while there is a tail function
+        t = c.t
+        if t == -1 then
+            return unpack(c.x)
+        end
+        --if there is a target function, call it
+        local r = {}
+        if c.x then
+            r = {c.x(unpack(c.a))} --call it
+        end
+        t(unpack(r))
     end
 end
 
