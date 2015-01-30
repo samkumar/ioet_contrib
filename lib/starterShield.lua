@@ -97,6 +97,17 @@ Buzz.go = function(period)
     end)
 end
 
+Buzz.go_cord = function (period)
+    Buzz.continue_buzzing = true
+    cord.new(function ()
+        while Buzz.continue_buzzing do
+            storm.io.set(1, storm.io.D6)
+            storm.io.set(0, storm.io.D6)
+            cord.await(storm.os.invokeLater, period)
+        end
+    end)
+end
+
 Buzz.stop = function()
     Buzz.continue_buzzing = false
 end
