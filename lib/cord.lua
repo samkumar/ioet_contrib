@@ -77,6 +77,10 @@ cord.nc = function(f, ...)
     end
 end
 
+cord.ncw = function(f)
+    return function(...) cord.nc(f, unpack({...})) end
+end
+
 cord.yield = function()
     coroutine.yield()
 end
