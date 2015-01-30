@@ -18,9 +18,11 @@ function Button:new(bpin)
    return obj
 end
 
+--[[
 function Button:pin()
    return self.pin
 end
+]]--
 
 function Button:pressed()
    return storm.io.get(storm.io[self.pin]) 
@@ -52,7 +54,7 @@ function Button.wait()
 -- Wait on a button press
 --   suspend execution of the filament
 --   resume and return when transition occurs
-   cord.await(storm.io.watch_single, storm.io.FALLING, storm.io[sel.pin])
+   cord.await(storm.io.watch_single, storm.io.FALLING, storm.io[self.pin])
 end
 
 return Button
