@@ -47,7 +47,9 @@ LCD.command = function(val)
             arr:set(1, 0x80)
             arr:set(2, val)
             local rv = cord.await(storm.i2c.write,  storm.i2c.EXT + 0x7c,  storm.i2c.START + storm.i2c.STOP, arr)
-            assert(rv == storm.i2c.OK)
+            if (rv ~= storm.i2c.OK) then
+                print ("ERROR ON I2C WRITE: ",rv)
+            end    
 end
 
 LCD.init = function(lines, dotsize)
@@ -59,6 +61,10 @@ LCD.init = function(lines, dotsize)
             LCD._dm = codes.LCD_ENTRYLEFT + codes.LCD_ENTRYSHIFTDECREMENT;
             LCD._cl = 0
             if dotsize ~=0 and lines ~= 1 then LCD._df = bit.bor(LCD._df, codes.LCD_5x8DOTS) end
+            --this will make sure the CLK and DAT lines are in the correct state
+            --because we write to an address we know will NACK 
+            --local arr = storm.array.create(1, storm.array.UINT8)
+            --cord.await(storm.i2c.write,  storm.i2c.EXT + 0xFE,  storm.i2c.START + storm.i2c.STOP, arr)
             -- seriously, the chip requires this...
             cord.await(storm.os.invokeLater, 200*storm.os.MILLISECOND)
             LCD.command(codes.LCD_FUNCTIONSET + LCD._df)
@@ -78,8 +84,6 @@ LCD.init = function(lines, dotsize)
             LCD._dc  = codes.LCD_DISPLAYON + codes.LCD_CURSORON + codes.LCD_BLINKON
             LCD.display()
             cord.await(storm.os.invokeLater, 50*storm.os.MILLISECOND)
-
-
 end
 LCD.setCursor = function(row, col)
     if row == 0 then
@@ -102,8 +106,10 @@ LCD.data = function (c)
     arr:set(1, 0xC0)
     arr:set(2, c)
     local rv = cord.await(storm.i2c.write,  storm.i2c.EXT + 0x7c,  storm.i2c.START + storm.i2c.STOP, arr)
+    if (rv ~= storm.i2c.OK) then
+        print ("ERROR ON I2C WRITE: ",rv)
+    end    
     cord.await(storm.os.invokeLater, 50*storm.os.MILLISECOND)
-    assert(rv == storm.i2c.OK)
 end
 LCD.clear = function ()
     LCD.command(codes.LCD_CLEARDISPLAY)
