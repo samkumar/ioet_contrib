@@ -45,7 +45,10 @@ cord.enter_loop = function ()
                 ro = true
                 cord._activeidx = i
                 v.s = cord._READY
-                s, v.t, v.x, v.a= coroutine.resume(v.c, v.rv and unpack(v.rv) or nil)
+                s, v.t, v.x, v.a = coroutine.resume(v.c, v.rv and unpack(v.rv) or nil)
+                if not s then
+                    print (v.t)
+                end
                 if (coroutine.status(v.c) == "dead" or v.k) then
                     cord._cors[i] = nil
                 end
