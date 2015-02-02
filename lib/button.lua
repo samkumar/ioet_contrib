@@ -13,16 +13,10 @@ function Button:new(bpin)
    obj = {pin = bpin}		-- initialize the new object
    setmetatable(obj, self)	-- associate class methods
    self.__index = self
-   storm.io.set_pull(storm.io.PULL_UP, storm.io[bpin])
    storm.io.set_mode(storm.io.INPUT, storm.io[bpin])
+   storm.io.set_pull(storm.io.PULL_UP, storm.io[bpin])
    return obj
 end
-
---[[
-function Button:pin()
-   return self.pin
-end
-]]--
 
 function Button:pressed()
    return storm.io.get(storm.io[self.pin]) 
@@ -45,12 +39,12 @@ function Button:whenever (transition, action)
    storm.io.watch_all(storm.io[transition], storm.io[self.pin], action)
 end
 
-function Button.when (transition, action)
+function Button:when (transition, action)
    -- register call back to fire when button is pressed
    storm.io.watch_single(storm.io[transition], storm.io[self.pin], action)
 end
 
-function Button.wait()
+function Button:wait()
 -- Wait on a button press
 --   suspend execution of the filament
 --   resume and return when transition occurs
