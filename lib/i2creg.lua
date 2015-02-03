@@ -13,16 +13,35 @@ end
 function REG:r(reg)
     -- TODO:
     -- create array with address
+    arr = storm.array.create(1, storm.array.UINT8)
+    arr:set(1, reg)
     -- write address
+    local rv1 = cord.await(storm.i2c.write, self.port + reg, storm.i2c.START, arr)
+    if rv1 ~= storm.i2c.OK then
+        print("Could not communicate with register: " .. rv1)
+        return 0x00
+    end
     -- read register with RSTART
+    local rv2 = cord.await(storm.i2c.read, self.port + reg, storm.i2c.RSTART + storm.i2c.STOP, arr)
     -- check all return values
+    if rv2 ~= storm.i2c.OK then
+        print("Could not read from register: " .. rv2)
+    end
+    return arr:get(1)
 end
 
 function REG:w(reg, value)
     -- TODO:
     -- create array with address and value
+    arr = storm.array.create(2, storm.array.UINT8)
+    arr:set(1, reg)
+    arr:set(2, value)
     -- write
+    local rv = cord.await(storm.i2c.write, self.port + reg, storm.i2c.START, arr)
     -- check return value
+    if rv ~= storm.i2c.OK then
+        print("Could not write to register: " .. rv)
+    end
 end
 
 return REG
