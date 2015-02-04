@@ -39,13 +39,30 @@ Alphabet = {
    [" "] = {nil},
 }
 
+local MorseToAlpha = {}
+morse.computeMorseToAlpha = function ()
+    local i
+    local curr_table
+    for letter, code in pairs(Alphabet) do
+        curr_table = MorseToAlpha
+        for i = 1, #code do
+            if curr_table[code[i]] == nil then
+                curr_table[code[i]] = {}
+            end
+            curr_table = curr_table[code[i]]
+        end
+        curr_table['end'] = letter
+    end
+end
+
+morse.MorseToAlpha = MorseToAlpha
+
 morse.send = function(message, pin, delay)
    local res = {}
    local stop = false
    res.stop = function()
-   	  stop = true
+         stop = true
    end
-
    storm.io.set_mode(storm.io.OUTPUT, pin)
 
    cord.new(
