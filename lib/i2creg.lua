@@ -1,6 +1,15 @@
 require "cord"
 local REG = {}
 
+--[[
+
+The REG register type represents the registers associated with at port PORT
+(storm.i2c.INT or storm.i2c.EXT) and address ADDRESS.
+
+It provides an abstraction for reading and writing to registers.
+
+]]--
+
 -- Create a new I2C register binding
 function REG:new(port, address)
     obj = {port=port, address=address}
@@ -16,13 +25,13 @@ function REG:r(reg)
     arr = storm.array.create(1, storm.array.UINT8)
     arr:set(1, reg)
     -- write address
-    local rv1 = cord.await(storm.i2c.write, self.port + reg, storm.i2c.START, arr)
+    local rv1 = cord.await(storm.i2c.write, self.port + self.address, storm.i2c.START, arr)
     if rv1 ~= storm.i2c.OK then
         print("Could not communicate with register: " .. rv1)
         return 0x00
     end
     -- read register with RSTART
-    local rv2 = cord.await(storm.i2c.read, self.port + reg, storm.i2c.RSTART + storm.i2c.STOP, arr)
+    local rv2 = cord.await(storm.i2c.read, self.port + self.address, storm.i2c.RSTART + storm.i2c.STOP, arr)
     -- check all return values
     if rv2 ~= storm.i2c.OK then
         print("Could not read from register: " .. rv2)
@@ -37,7 +46,7 @@ function REG:w(reg, value)
     arr:set(1, reg)
     arr:set(2, value)
     -- write
-    local rv = cord.await(storm.i2c.write, self.port + reg, storm.i2c.START, arr)
+    local rv = cord.await(storm.i2c.write, self.port + self.address, storm.i2c.START, arr)
     -- check return value
     if rv ~= storm.i2c.OK then
         print("Could not write to register: " .. rv)
