@@ -110,6 +110,8 @@ LCD.init = function(lines, dotsize)
             cord.await(storm.os.invokeLater, 50*storm.os.MILLISECOND)
             
             -- Initialization work for the backlight LED. --
+            LCD.rgbreg:w(0, 0)
+            LCD.rgbreg:w(1, 0)
             LCD.rgbreg:w(codes.LED_OUTPUT, 0xAA)
 end
 
