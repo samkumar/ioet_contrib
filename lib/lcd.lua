@@ -1,6 +1,13 @@
 REG = require "reg"
 string = require "string"
 
+--[[ References: The best documentation I could find about how to
+LCD was actually a C++ library for it, at
+Seeed-Studio/Grove_LCD_RGB_Backlight. I used the existing code
+to figure out what messages I needed to send via I2C to actuate the
+LCD. ]]--
+
+
 local codes = {
     LCD_CLEARDISPLAY = 0x01,
     LCD_RETURNHOME = 0x02,
@@ -45,23 +52,35 @@ local codes = {
     
     LCD_ADDR = 0x7c,
     LCD_PORT = storm.i2c.EXT,
+    
+    RGB_ADDR = 0xc4,
+    RGB_PORT = storm.i2c.EXT,
+    RED_ADDR = 0x04,
+    GREEN_ADDR = 0x03,
+    BLUE_ADDR = 0x02,
+    
+    LED_OUTPUT = 0x08,
 }
 
 local LCD = {}
 
 
 LCD.command = function(val)
-    LCD.reg:w(codes.LCD_COMMAND, val)
+    LCD.lcdreg:w(codes.LCD_COMMAND, val)
 end
 
 -- Writes a character to the cursor's current position. --
 LCD.write = function (char)
-    LCD.reg:w(codes.LCD_WRITE, char)
+    LCD.lcdreg:w(codes.LCD_WRITE, char)
 end
 
 LCD.init = function(lines, dotsize)
-            LCD.reg = REG:new(codes.LCD_PORT, codes.LCD_ADDR)
-
+            LCD.lcdreg = REG:new(codes.LCD_PORT, codes.LCD_ADDR)
+            LCD.rgbreg = REG:new(codes.RGB_PORT, codes.RGB_ADDR)
+            LCD.red = -1
+            LCD.green = -1
+            LCD.blue = -1
+            
             LCD._df = 0
             if lines == 2 then LCD._df = codes.LCD_2LINE end
             LCD._df = LCD._df + codes.LCD_8BITMODE
@@ -89,6 +108,9 @@ LCD.init = function(lines, dotsize)
             LCD._dc  = codes.LCD_DISPLAYON + codes.LCD_CURSORON + codes.LCD_BLINKON
             LCD.display()
             cord.await(storm.os.invokeLater, 50*storm.os.MILLISECOND)
+            
+            -- Initialization work for the backlight LED. --
+            LCD.rgbreg:w(codes.LED_OUTPUT, 0xAA)
 end
 
 -- Sets the position of the cursor. ROW and COL are 0-indexes --
@@ -119,6 +141,30 @@ LCD.writeString = function (str)
     local i
     for i = 1, #str do
         LCD.write(string.byte(str:sub(i, i)))
+    end
+end
+
+--[[ Sets the color of the RGB backlight. RED, GREEN, and BLUE
+should be integers from 0 to 255. ]]--
+LCD.setBackColor = function (red, green, blue)
+    local result
+    if red ~= LCD.red then
+        result = LCD.rgbreg:w(codes.RED_ADDR, red)
+        if result ~= nil then
+            LCD.red = red
+        end
+    end
+    if green ~= LCD.green then
+        result = LCD.rgbreg:w(codes.GREEN_ADDR, green)
+        if result ~= nil then
+            LCD.green = green
+        end
+    end
+    if blue ~= LCD.blue then
+        result = LCD.rgbreg:w(codes.BLUE_ADDR, blue)
+        if result ~= nil then
+            LCD.blue = blue
+        end
     end
 end
 

@@ -49,7 +49,9 @@ function REG:w(reg, value)
     -- check return value
     if rv ~= storm.i2c.OK then
         print("Could not write to register: " .. rv)
+        return nil
     end
+    return 1
 end
 
 return REG
