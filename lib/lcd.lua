@@ -1,4 +1,5 @@
-
+REG = require "reg"
+string = require "string"
 
 local codes = {
     LCD_CLEARDISPLAY = 0x01,
@@ -37,19 +38,30 @@ local codes = {
     LCD_1LINE = 0x00,
     LCD_5x10DOTS = 0x04,
     LCD_5x8DOTS = 0x00,
+    
+    -- flags for communication
+    LCD_COMMAND = 0x80,
+    LCD_WRITE = 0x40,
+    
+    LCD_ADDR = 0x7c,
+    LCD_PORT = storm.i2c.EXT,
 }
 
 local LCD = {}
 
 
 LCD.command = function(val)
-    --TODO
+    LCD.reg:w(codes.LCD_COMMAND, val)
 end
+
+-- Writes a character to the cursor's current position. --
 LCD.write = function (char)
-    --TODO
+    LCD.reg:w(codes.LCD_WRITE, char)
 end
 
 LCD.init = function(lines, dotsize)
+            LCD.reg = REG:new(codes.LCD_PORT, codes.LCD_ADDR)
+
             LCD._df = 0
             if lines == 2 then LCD._df = codes.LCD_2LINE end
             LCD._df = LCD._df + codes.LCD_8BITMODE
@@ -78,6 +90,8 @@ LCD.init = function(lines, dotsize)
             LCD.display()
             cord.await(storm.os.invokeLater, 50*storm.os.MILLISECOND)
 end
+
+-- Sets the position of the cursor. ROW and COL are 0-indexes --
 LCD.setCursor = function(row, col)
     if row == 0 then
         col = bit.bor(col, 0x80)
@@ -94,9 +108,18 @@ LCD.nodisplay = function ()
     LCD._dc = bit.bor(LCD._dc, bit.bnor(codes.LCD_DISPLAYON))
     LCD.command(codes.LCD_DISPLAYCONTROL + LCD._dc)
 end
+-- Erases the screen. --
 LCD.clear = function ()
     LCD.command(codes.LCD_CLEARDISPLAY)
     cord.await(storm.os.invokeLater, 2*storm.os.MILLISECOND)
+end
+
+-- Writes a string to the LCD display at the cursor. --
+LCD.writeString = function (str)
+    local i
+    for i = 1, #str do
+        LCD.write(string.byte(str:sub(i, i)))
+    end
 end
 
 return LCD
