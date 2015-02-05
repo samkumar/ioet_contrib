@@ -9,9 +9,3 @@ function scan_i2c(port)
 end
 
 return scan_i2c
-
---[[
-
-Notes: BACKLIT LCD Display is at addresses 0x7c, 0xc4, 0xe0.
-
-]]--
