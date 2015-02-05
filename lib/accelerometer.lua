@@ -7,7 +7,7 @@ An abstraction for the FXOS8700CQ accelerometer and magnetometer.
 ]]--
 
 ACCEL_STATUS = 0x00
-ACCEL_WHOAMI = 0x00
+ACCEL_WHOAMI = 0x0D
 ACCEL_XYZ_DATA_CFG = 0x0E
 ACCEL_CTRL_REG1 = 0x2A
 ACCEL_M_CTRL_REG1 = 0x5B
@@ -31,6 +31,9 @@ function ACC:new()
 end
 
 function ACC:init()
+    local tmp = self.reg:r(ACCEL_WHOAMI)
+    assert (tmp == ACCEL_WHOAMI_VAL, "accelerometer insane")
+
     --lets put it into standby
     self.reg:w(ACCEL_CTRL_REG1, 0x00);
 
