@@ -45,7 +45,7 @@ function REG:w(reg, value)
     arr:set(1, reg)
     arr:set(2, value)
     -- write
-    local rv = cord.await(storm.i2c.write, self.port + self.address, storm.i2c.RSTART + storm.i2c.STOP, arr)
+    local rv = cord.await(storm.i2c.write, self.port + self.address, storm.i2c.START + storm.i2c.STOP, arr)
     -- check return value
     if rv ~= storm.i2c.OK then
         print("Could not write to register: " .. rv)
