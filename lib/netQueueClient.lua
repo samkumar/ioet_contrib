@@ -19,6 +19,8 @@ local NQClient = {}
 math = require("math")
 math.randomseed(storm.os.now(storm.os.SHIFT_0))
 
+empty = function () end
+
 --[[ PORT is the port of the underlying UDP socket. ]]--
 function NQClient:new(port)
     setmetatable(self, {})
@@ -35,7 +37,7 @@ function NQClient:new(port)
     self.ready = true
     self.pendingID = nil
     
-    self.currSuccess = function () end
+    self.currSuccess = empty
     
     self.queue = {}
     self.front = 1
@@ -107,7 +109,7 @@ function NQClient:processNextFromQueue()
                 i = i + 1
             end
             cord.await(storm.os.invokeLater, 100 * storm.os.MILLISECOND) -- wait a bit in case one of the last tries was heard
-            self.currSuccess = function () end
+            self.currSuccess = empty
             if i == timesToTry and self.pending then
                 self.pending = false -- Give up
                 failCallback()
