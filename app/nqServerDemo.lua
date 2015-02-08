@@ -1,3 +1,5 @@
+-- This is meant to be run on the server Firestorm. No shield is required.
+
 NQS = require "nqserver"
 LED = require "led"
 
