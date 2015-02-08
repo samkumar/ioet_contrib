@@ -111,7 +111,7 @@ function NQClient:processNextFromQueue()
                 self.pending = false -- Give up
                 failCallback()
             end
-            self.currID = self.currID + math.random(2000000000)
+            self.currID = math.random(2000000000)
             storm.os.invokeLater(0, function ()
                 self.ready = true
                 self:processNextFromQueue()
