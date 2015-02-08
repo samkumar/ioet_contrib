@@ -30,7 +30,8 @@ cord.await = function(f, ...)
     local args = {...}
     args[#args+1] = function (...)
         cord._cors[aidx].s=cord._PROMISEDONE
-        cord._cors[aidx].rv={...}
+        cord._cors[aidx].rv={... }
+        print ("rvlen:",#cord._cors[aidx].rv)
     end
     f(unpack(args))
     return coroutine.yield()
@@ -45,7 +46,11 @@ cord.enter_loop = function ()
                 ro = true
                 cord._activeidx = i
                 v.s = cord._READY
-                s, v.t, v.x, v.a = coroutine.resume(v.c, v.rv and unpack(v.rv) or nil)
+                if v.rv ~= nil then
+                    s, v.t, v.x, v.a = coroutine.resume(v.c,unpack(v.rv))
+                else
+                    s, v.t, v.x, v.a = coroutine.resume(v.c)
+                end
                 if not s then
                     print (v.t)
                 end
