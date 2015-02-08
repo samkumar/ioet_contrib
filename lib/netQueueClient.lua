@@ -79,6 +79,7 @@ function NQClient:processNextFromQueue()
     
         -- Dequeue request
         local req = self.queue[self.front]
+        self.queue[self.front] = nil
         self.front = self.front + 1
         
         self.currIP = req.addr
