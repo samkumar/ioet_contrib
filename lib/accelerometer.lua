@@ -7,12 +7,20 @@ An abstraction for the FXOS8700CQ accelerometer and magnetometer.
 ]]--
 
 ACCEL_STATUS = 0x00
-ACCEL_WHOAMI = 0x00
+ACCEL_WHOAMI = 0x0D
 ACCEL_XYZ_DATA_CFG = 0x0E
 ACCEL_CTRL_REG1 = 0x2A
 ACCEL_M_CTRL_REG1 = 0x5B
 ACCEL_M_CTRL_REG2 = 0x5C
 ACCEL_WHOAMI_VAL = 0xC7
+ACCEL_OUT_X_MSB = 0x01
+ACCEL_OUT_X_LSB = 0x02
+ACCEL_OUT_Y_MSB = 0x03
+ACCEL_OUT_Y_LSB = 0x04
+ACCEL_OUT_Z_MSB = 0x05
+ACCEL_OUT_Z_LSB = 0x06
+
+-- This was copied almost exactly from the Google Doc. --
 
 function ACC:new()
    local obj = {port=storm.i2c.INT, addr = 0x3c, 
@@ -23,11 +31,9 @@ function ACC:new()
 end
 
 function ACC:init()
-    --[[print(ACCEL_WHOAMI)
-    print(ACCEL_WHOAMI_VAL)
     local tmp = self.reg:r(ACCEL_WHOAMI)
     assert (tmp == ACCEL_WHOAMI_VAL, "accelerometer insane")
-]]--
+
     --lets put it into standby
     self.reg:w(ACCEL_CTRL_REG1, 0x00);
 
