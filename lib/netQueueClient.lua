@@ -24,7 +24,7 @@ function NQClient:new(port)
     setmetatable(self, {})
     self.socket = storm.net.udpsocket(port, function (payload, ip, port)
         local unpacked = storm.mp.unpack(payload)
-        if port == self.currPort and unpacked["_id"] == self.currID then
+        if port == self.currPort and unpacked["_id"] == self.currID and self.pending then
             self.pending = false
             self.currSuccess(unpacked, ip, port)
         end
