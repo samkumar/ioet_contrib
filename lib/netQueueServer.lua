@@ -9,9 +9,16 @@ are responses to messages received from clients.
 
 local NQServer = {}
 
+--[[ PORT is the port of the underlying UDP socket.
+RESPONSEGENERATOR is a function that produces a reponse for each message
+received. It takes three arguments: the message (as a table) sent by the
+client with an auxiliary _id field, the ip address from which the message
+was received, and the port from which the message was received. It should
+return a table containing the response to be sent to the client. ]]--
 function NQServer:new(port, responseGenerator)
     setmetatable(self, {})
     self.currIDs = {}
+    responseGenerator = responseGenerator or function () end
     self.socket = storm.net.udpsocket(port, function (payload, ip, port)
         local message = storm.mp.unpack(payload)
         local id = message["_id"]
@@ -37,6 +44,7 @@ function NQServer:new(port, responseGenerator)
     return self
 end
 
+--[[ Closes the underlying UDP socket. ]]--
 function NQServer:close()
     storm.net.close(self.socket)
 end

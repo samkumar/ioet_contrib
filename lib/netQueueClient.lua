@@ -2,6 +2,14 @@
 
 An abstraction for a reliable, ordered network queue for the client.
 
+UDP is too unreliable for some applications. This library solves that
+problem for a connection between a client and a server.
+
+It repeatedly sends messages to improve reliability. It stores pending
+messages in a queue, so the order in which the messages are sent on the
+client is guaranteed to be the order in which they are received on the
+server.
+
 This is meant for client-side use, which means that all incoming messages
 are expected to be responses to messages sent by this client.
 
@@ -11,6 +19,7 @@ local NQClient = {}
 math = require("math")
 math.randomseed(storm.os.now(storm.os.SHIFT_0))
 
+--[[ PORT is the port of the underlying UDP socket. ]]--
 function NQClient:new(port)
     setmetatable(self, {})
     self.socket = storm.net.udpsocket(port, function (payload, ip, port)
@@ -39,6 +48,17 @@ function NQClient:new(port)
     return self
 end
 
+--[[
+     Pushes the provided message into the Network Queue. When all messages pushed earlier have been processed, this one is sent.
+     MESSAGE is a table containing the message to be sent.
+     ADDRESS is the destination IP Address.
+     PORT is the destination port.
+     SUCCESS is the callback function to be called with the server's response if the transaction is successful. It takes three arguments: message, ip, and port, where message is the (unpacked) table containing the server's response and an additional _id field.
+     FAILURE is the callback function to be called if the message could not be sent.
+     EACHTRY is the callback function that is executed every time the client attempts to send a UDP message.
+     TIMESTOTRY is the number of times to try and send the message before giving up. Defaults to 2000 tries.
+     TIMEBETWEENTRIES is the amount of time to wait between attempts to send the message. Defaults to 15 ms.
+     ]]--
 function NQClient:sendMessage(message, address, port, success, failure, eachTry, timesToTry, timeBetweenTries)
     success = success or function () end
     failure = failure or function () end
@@ -74,8 +94,8 @@ function NQClient:processNextFromQueue()
         self.pending = true
         self.ready = false
         
-        timesToTry = req.times or 1500
-        timeBetween = req.period or 20 * storm.os.MILLISECOND
+        timesToTry = req.times or 2000
+        timeBetween = req.period or 15 * storm.os.MILLISECOND
         
         cord.new(function ()
             local i = 0
@@ -100,7 +120,7 @@ function NQClient:processNextFromQueue()
     end
 end
 
-
+--[[ Closes the underlying UDP socket. ]]--
 function NQClient:close()
     self.socket.close()
 end
