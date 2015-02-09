@@ -55,18 +55,16 @@ end
      MESSAGE is a table containing the message to be sent.
      ADDRESS is the destination IP Address.
      PORT is the destination port.
-     SUCCESS is the callback function to be called with the server's response if the transaction is successful. It takes three arguments: message, ip, and port, where message is the (unpacked) table containing the server's response and an additional _id field.
-     FAILURE is the callback function to be called if the message could not be sent.
-     EACHTRY is the callback function that is executed every time the client attempts to send a UDP message.
      TIMESTOTRY is the number of times to try and send the message before giving up. Defaults to 2000 tries.
      TIMEBETWEENTRIES is the amount of time to wait between attempts to send the message. Defaults to 15 ms.
+     EACHTRY is the callback function that is executed every time the client attempts to send a UDP message.
+     CALLBACK is the callback function to be called with the server's response when the transaction is completed. It takes three arguments: message, ip, and port, where message is the (unpacked) table containing the server's response and an additional _id field. If the message could not be sent, then the function is called with nil in all three arguments.
      ]]--
-function NQClient:sendMessage(message, address, port, success, failure, eachTry, timesToTry, timeBetweenTries)
-    success = success or function () end
-    failure = failure or function () end
-    eachTry = eachTry or function () end
+function NQClient:sendMessage(message, address, port, timesToTry, timeBetweenTries, eachTry, callback)
+    callback = callback or empty
+    eachTry = eachTry or empty
     -- Insert request into queue
-    self.queue[self.back] = {["msg"] = message, ["addr"] = address, ["port"] = port, ["scallback"] = success, ["fcallback"] = failure, ["tcallback"] = eachTry, ["times"] = timesToTry, ["period"] = timeBetweenTries}
+    self.queue[self.back] = {["msg"] = message, ["addr"] = address, ["port"] = port, ["callback"] = callback, ["tcallback"] = eachTry, ["times"] = timesToTry, ["period"] = timeBetweenTries}
     self.back = self.back + 1
     
     self:processNextFromQueue()
@@ -90,9 +88,8 @@ function NQClient:processNextFromQueue()
         message._id = self.currID
         local msg = storm.mp.pack(message)
         
-        self.currSuccess = req.scallback
+        self.currSuccess = req.callback
         local tryCallback = req.tcallback
-        local failCallback = req.fcallback
         
         self.pending = true
         self.ready = false
@@ -108,11 +105,13 @@ function NQClient:processNextFromQueue()
                 cord.await(storm.os.invokeLater, timeBetween)
                 i = i + 1
             end
-            cord.await(storm.os.invokeLater, 100 * storm.os.MILLISECOND) -- wait a bit in case one of the last tries was heard
+            if self.pending then
+                cord.await(storm.os.invokeLater, 500 * storm.os.MILLISECOND) -- wait a bit in case one of the last tries was heard
+            end
             self.currSuccess = empty
-            if i == timesToTry and self.pending then
+            if self.pending then
                 self.pending = false -- Give up
-                failCallback()
+                req.callback(nil, nil, nil)
             end
             self.currID = math.random(2000000000)
             

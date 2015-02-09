@@ -17,13 +17,15 @@ count = 1
 topress:whenever("RISING", function ()
     print("Sending...")
     blu:flash()
-    nqcl:sendMessage({["message"] = "hello #" .. count}, "ff02::1", 50004, function (payload, address, port)
-        red:flash()
-        print("Successfully sent! Response received: " .. payload.message)
-    end, function ()
-        print("Message could not be sent")
-    end, function ()
+    nqcl:sendMessage({["message"] = "hello #" .. count}, "ff02::1", 50004, nil, nil, function ()
         grn:flash()
+    end, function (payload, address, port)
+        if payload ~= nil then
+            red:flash()
+            print("Successfully sent! Response received: " .. payload.message)
+        else
+            print("Message could not be sent")
+        end
     end)
     count = count + 1
 end)
