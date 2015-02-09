@@ -11,31 +11,68 @@ local SVCD = {
     th = nil
 }
 
---[[ TODO
 SVCD.scan_transactions = function()
-    local now = storm.os.now(storm.os.SHIFT_0)
-    for k,v in pairs(SVCD.transactions) do
-        if v[1] <= now then
-    end
-end
-SVCD.trSetup = function(src_ip, src_port, ikvid, time, fn, args)
-    if manifest[fn] ~= nil then
-        SVCD.transactions[ivkid] = {time, fn, args }
-        if SVCD.nxt_time and time < SVCD.nxt_time then
-            storm.os.cancel(SVCD.th)
-            local now = storm.os.now(storm.os.SHIFT_0)
-            if now >= time then
-                print "MISSED TR DEADLINE"
-                return
+    print "scan transactions"
+    cord.new(function()
+        local now = storm.os.now(storm.os.SHIFT_16)
+        local mint
+        SVCD.th = nil
+        for k,v in pairs(SVCD.transactions) do
+            --execute it
+            print ("v1 is",v[1])
+            if v[1] <= now then
+                SVCD.manifest[v[2]](unpack(v[3]))
+                SVCD.transactions[k] = nil
+            else --work out soonest time
+                if mint == nil or v[1] < mint then
+                    mint = v[1]
+                end
             end
+        end
+        if mint ~= nil then
+            SVCD.nxt_time = mint
+            SVCD.th = storm.os.invokeLater((mint-now)*65536, SVCD.scan_transactions)
+        end
+    end)
+end
 
-            SVCD.th = storm.os.invokeLater(time-now, SVCD.scan_transactions)
+SVCD.trSetup = function(src_ip, src_port, ivkid, time, fn, args)
+    -- if we have the target function
+    if SVCD.manifest[fn] ~= nil then
+        -- idempotently set the transaction
+        print ("scheduling transaction for",time)
+        SVCD.transactions[ivkid] = {time, fn, args }
+        -- if we have a nxt time and it is later than time,
+        -- cancel the nxt time and reset it. If we don't
+        -- have a th then also start one
+        if (SVCD.nxt_time and time < SVCD.nxt_time) or SVCD.th == nil then
+            if SVCD.th ~= nil then
+                storm.os.cancel(SVCD.th)
+                SVCD.th = nil
+            end
+            local now = storm.os.now(storm.os.SHIFT_16)
+            -- if the time is in the future, set a listener
+            if now < time then
+                print ("configuring callback for later:",(time-now))
+                SVCD.nxt_time = time
+                SVCD.th = storm.os.invokeLater((time-now)*65536, SVCD.scan_transactions)
+            else
+                print "invoking now"
+            -- otherwise invoke it now
+                SVCD.scan_transactions()
+            end
+        else
+            print "not doing any timer setup stuff"
         end
     end
+    storm.net.sendto(SVCD.ssock, storm.mp.pack({true}), src_ip, src_port)
 end
-SVCD.trAbort = function(ikvid)
+
+SVCD.trAbort = function(src_ip, src_port, ivkid)
+    SVCD.transactions[ivkid] = nil
+    storm.net.sendto(SVCD.ssock, storm.mp.pack({true}), src_ip, src_port)
 end
-]]--
+
 SVCD.dispatch = function(payload, src_ip, src_port)
     print "dispatch"
     local t = storm.mp.unpack(payload)
@@ -47,7 +84,7 @@ SVCD.dispatch = function(payload, src_ip, src_port)
     if fn == nil or args == nil then
         print "[SVCD] Ignoring bad fn ivk"
     end
-    if SVCD.manifest[fn] == nil then
+    if SVCD.dmanifest[fn] == nil then
        print "[SVCD] Attempt to invoke unoffered service"
     else
         -- spawn a new cord so that async function handlers can
@@ -57,10 +94,12 @@ SVCD.dispatch = function(payload, src_ip, src_port)
         -- I have implemented transaction setup and cancel as
         -- layer-breaking services so that they can broadcast
         -- their replies and hook into the services manifest
+        -- at the moment the replies are still unicast, but that might
+        -- be changed later
         if (fn == "trSetup") then
             SVCD.trSetup(src_ip, src_port, unpack(args))
         elseif (fn == "trAbort") then
-            SVCD.trAbort(unpack(args))
+            SVCD.trAbort(src_ip, src_port, unpack(args))
         else
             cord.new(function()
                 local rv = SVCD.manifest[fn](unpack(args))
@@ -86,9 +125,13 @@ SVCD.adispatch = function(pay, srcip, srcport)
     local adv = storm.mp.unpack(pay)
     print (string.format("Service advertisment %s", srcip))
     for k,v in pairs(adv) do
-        print ("  " .. k .. ":")
-        for kk,vv in pairs(v) do
-            print ("    >"..kk..":"..vv)
+        if k == "id" then
+            print ("ID="..v)
+        else
+            print ("  " .. k .. ":")
+            for kk,vv in pairs(v) do
+                print ("    >"..kk..":"..vv)
+            end
         end
     end
 end
@@ -98,6 +141,8 @@ SVCD.init = function(id)
    SVCD.csock = storm.net.udpsocket(1526, SVCD.cdispatch)
    SVCD.asock = storm.net.udpsocket(1527, SVCD.adispatch)
    SVCD.eph = 32768 --start of ephemeral range
+   SVCD.dmanifest["trSetup"] = {s=""}
+   SVCD.dmanifest["trAbort"] = {s=""}
    storm.os.invokePeriodically(3*storm.os.SECOND, SVCD.advertise)
 end
 
