@@ -28,6 +28,73 @@
 
 ////////////////// BEGIN FUNCTIONS /////////////////////////////
 
+int contrib_fourth_root_m1000(lua_State *L) //mandatory signature
+{
+    //Get param 1 from top of stack
+    double val = (double) luaL_checknumber(L, 1);
+
+    int i;
+    double guess = val / 2;
+    double step = val / 4;
+    for (i=0;i<20;i++)
+    {
+        if (guess*guess*guess*guess > val)
+            guess -= step;
+        else
+            guess += step;
+        step = step / 2;
+    }
+
+    //push back a *1000 fixed point
+    lua_pushnumber(L, (int)(guess*1000));
+    return 1; //one return value
+}
+
+
+int contrib_run_foobar(lua_State *L)
+{
+    //Load a symbol "foobar" from global table
+    lua_getglobal(L, "foobar"); //this is TOS now
+    lua_pushnumber(L, 3); //arg1
+    lua_pushnumber(L, 5); //arg2
+    lua_call(L, /*args=*/ 2, /*retvals=*/ 1);
+    int rv = lua_tonumber(L, -1); //-1 is TOS
+    printf("from C, rv is=%d\n", rv);
+    return 0; //no return values
+}
+
+int contrib_run_run_foobar(lua_State *L)
+{
+    //Load the contrib_run_foobar symbol
+    //Could also have got this by loading global storm table
+    //then loading the .n key, then getting the value
+
+    //Note that pushlightfunction is eLua specific
+    lua_pushlightfunction(L, contrib_run_foobar);
+    lua_call(L, 0, 0);
+    return 0;
+}
+
+int counter(lua_State *L)
+{
+    int val = lua_tonumber(L, lua_upvalueindex(1));
+    val++;
+
+    //Set upvalue (closure variable)
+    lua_pushnumber(L, val);
+    lua_replace(L, lua_upvalueindex(1));
+
+    //return it too
+    lua_pushnumber(L, val);
+    return 1;
+}
+
+int contrib_makecounter(lua_State *L)
+{
+    lua_pushnumber(L, 0); //initial val
+    lua_pushcclosure(L, &counter, 1);
+    return 1; //return the closure
+}
 
 /**
  * Prints out hello world
@@ -97,8 +164,7 @@ static int contrib_helloX_tail(lua_State *L)
         //Base case, now we do our return
         //We promised to return the number 42
         lua_pushnumber(L, 42);
-        lua_pushnumber(L, 43);
-        return cord_return(L, 2);
+        return cord_return(L, 1);
     }
 }
 
@@ -107,6 +173,9 @@ const LUA_REG_TYPE contrib_native_map[] =
 {
     { LSTRKEY( "hello" ), LFUNCVAL ( contrib_hello ) },
     { LSTRKEY( "helloX" ), LFUNCVAL ( contrib_helloX_entry ) },
+    { LSTRKEY( "fourth_root"), LFUNCVAL ( contrib_fourth_root_m1000 ) },
+    { LSTRKEY( "run_foobar"), LFUNCVAL ( contrib_run_foobar ) },
+    { LSTRKEY( "makecounter"), LFUNCVAL ( contrib_makecounter ) },
 
     //The list must end with this
     { LNILKEY, LNILVAL }
