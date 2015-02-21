@@ -68,6 +68,25 @@ function Discoverer:invoke(ip, name, args, callback)
     end)
 end
 
+function Discoverer:resolve(str)
+    local matches = {}
+    local index
+    for ip, servicetable in pairs(self.discovered_services) do
+        index = 1
+        for name, service in pairs(servicetable) do
+            if name == str or service["s"] == str then
+                if index == 1 then
+                    matches[ip] = {name}
+                else
+                    matches[ip][index] = name
+                end
+                index = index + 1
+            end
+        end
+    end
+    return matches
+end
+
 function Discoverer:close()
     storm.net.close(self.dsock)
     self.nqc:close()
