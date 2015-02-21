@@ -3,6 +3,12 @@ NQC = require "nqclient"
 
 local Discoverer = {}
 
+--[[
+SERVICE_FOUND is a callback that is executed whenever a new service is discovered. Arguments: ip, port, device id, service name, and dict with description and superclass.
+SERVICE_LOST is a callback that is executed whenever a service that was once discovered is no longer available. Arguments are the same as SERVICE_FOUND.
+TIMEOUT is the the duration that a service should last when no advertisements are heard. If no advertisements are heard for a discovered service for this duration, the service will be removed from the discovered_services table and the SERVICE_LOST callback will be fired.
+DPORT is the port where we listen for advertisements (defaults to 1525). IPORT is the port to which we send service invocations (defaults to 1526).
+]]--
 function Discoverer:new(service_found, service_lost, timeout, dport, iport)
     timeout = timeout or 300 * storm.os.SECOND
     dport = dport or 1525
@@ -60,6 +66,10 @@ function Discoverer:new(service_found, service_lost, timeout, dport, iport)
     return self
 end
 
+--[[
+Invokes a service with the given NAME and ARGS on the device with the specified IP address.
+CALLBACK is fired with an array-like table of return values from the service invocation. Arguments: retvals, ip, port.
+]]--
 function Discoverer:invoke(ip, name, args, callback)
     local msg = {name, args}
     self.nqc:sendMessage(msg, ip, self.iport, 1500, 50 * storm.os.MILLISECOND, nil, function (message, ip, port)
@@ -68,6 +78,10 @@ function Discoverer:invoke(ip, name, args, callback)
     end)
 end
 
+--[[
+Resolves STR to services. STR can be a service name or a superclass name.
+Returns a table mapping ip addresses to array-like tables of service names.
+]]--
 function Discoverer:resolve(str)
     local matches = {}
     local index
@@ -87,6 +101,9 @@ function Discoverer:resolve(str)
     return matches
 end
 
+--[[
+Closes this Discoverer's underlying sockets.
+]]--
 function Discoverer:close()
     storm.net.close(self.dsock)
     self.nqc:close()
