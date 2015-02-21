@@ -123,7 +123,7 @@ end
 
 --[[ Closes the underlying UDP socket. ]]--
 function NQClient:close()
-    self.socket.close()
+    storm.net.close(self.socket)
 end
 
 return NQClient
