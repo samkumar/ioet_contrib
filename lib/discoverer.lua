@@ -102,9 +102,12 @@ function Discoverer:resolve(str)
 end
 
 --[[
-Closes this Discoverer's underlying sockets.
+Closes this Discoverer's underlying sockets and cancels pending timeouts.
 ]]--
 function Discoverer:close()
+    for ip, timeout in self.timeouts do
+        storm.os.cancel(timeout)
+    end
     storm.net.close(self.dsock)
     self.nqc:close()
 end
