@@ -7,7 +7,7 @@ local Discoverer = {}
 SERVICE_FOUND is a callback that is executed whenever a new service is discovered. Arguments: ip, port, device id, service name, and dict with description and superclass.
 SERVICE_LOST is a callback that is executed whenever a service that was once discovered is no longer available. Arguments are the same as SERVICE_FOUND.
 TIMEOUT is the the duration that a service should last when no advertisements are heard. If no advertisements are heard for a discovered service for this duration, the service will be removed from the discovered_services table and the SERVICE_LOST callback will be fired.
-DPORT is the port where we listen for advertisements (defaults to 1525). IPORT is the port to which we send service invocations (defaults to 1526).
+DPORT is the port where we listen for advertisements (defaults to 1525). IPORT is the port to which we send queued service invocations (defaults to 1526).
 ]]--
 function Discoverer:new(service_found, service_lost, timeout, dport, iport)
     timeout = timeout or 300 * storm.os.SECOND
@@ -68,6 +68,7 @@ end
 
 --[[
 Invokes a service with the given NAME and ARGS on the device with the specified IP address.
+The service invocation will be queued and will only be executed after the previous service invocation made with this method completes.
 TIMESTOTRY and TIMEBETWEENTRIES specify how many times and how often to attempt to send the message.
 EACHTRY is a callback that is called every time the program attempts to send a message
 CALLBACK is fired with an array-like table of return values from the service invocation. Arguments: retvals, ip, port. If the service invocation could not be performed, it is called with nil in all arguments.
@@ -77,6 +78,23 @@ function Discoverer:invoke(ip, name, args, timesToTry, timeBetweenTries, eachTry
     timeBetweenTries = timeBetweenTries or 50 * storm.os.MILLISECOND
     local msg = {name, args}
     self.nqc:sendMessage(msg, ip, self.iport, timesToTry, timeBetweenTries, eachTry, function (message, ip, port)
+        message["_id"] = nil
+        callback(message, ip, port)
+    end)
+end
+
+--[[
+The same as the invoke() method, except that the invocation is attempted immediately.
+In other words, the discoverer will not queue this invocation and will not wait for the previous invocation to complete.
+A new socket is created temporarily for the duration of the request. The port on which to create the socket must be specifed.
+]]--
+function Discoverer:invokeNow(ip, name, args, port, timesToTry, timeBetweenTries, eachTry, callback)
+    timesToTry = timesToTry or 500
+    timeBetweenTries = timeBetweenTries or 50 * storm.os.MILLISECOND
+    local msg = {name, args}
+    local temp_nqc = NQC:new(port)
+    temp_nqc:sendMessage(msg, ip, self.iport, timesToTry, timeBetweenTries, eachTry, function (message, ip, port)
+        temp_nqc:close()
         message["_id"] = nil
         callback(message, ip, port)
     end)
