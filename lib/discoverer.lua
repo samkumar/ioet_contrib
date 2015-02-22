@@ -68,11 +68,15 @@ end
 
 --[[
 Invokes a service with the given NAME and ARGS on the device with the specified IP address.
-CALLBACK is fired with an array-like table of return values from the service invocation. Arguments: retvals, ip, port.
+TIMESTOTRY and TIMEBETWEENTRIES specify how many times and how often to attempt to send the message.
+EACHTRY is a callback that is called every time the program attempts to send a message
+CALLBACK is fired with an array-like table of return values from the service invocation. Arguments: retvals, ip, port. If the service invocation could not be performed, it is called with nil in all arguments.
 ]]--
-function Discoverer:invoke(ip, name, args, callback)
+function Discoverer:invoke(ip, name, args, timesToTry, timeBetweenTries, eachTry, callback)
+    timesToTry = timesToTry or 500
+    timeBetweenTries = timeBetweenTries or 50 * storm.os.MILLISECOND
     local msg = {name, args}
-    self.nqc:sendMessage(msg, ip, self.iport, 1500, 50 * storm.os.MILLISECOND, nil, function (message, ip, port)
+    self.nqc:sendMessage(msg, ip, self.iport, timesToTry, timeBetweenTries, eachTry, function (message, ip, port)
         message["_id"] = nil
         callback(message, ip, port)
     end)
@@ -105,7 +109,7 @@ end
 Closes this Discoverer's underlying sockets and cancels pending timeouts.
 ]]--
 function Discoverer:close()
-    for ip, timeout in self.timeouts do
+    for ip, timeout in pairs(self.timeouts) do
         storm.os.cancel(timeout)
     end
     storm.net.close(self.dsock)
