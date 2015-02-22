@@ -19,7 +19,7 @@ function Button:new(bpin)
 end
 
 function Button:pressed()
-   return storm.io.get(storm.io[self.pin]) 
+   return 1 - storm.io.get(storm.io[self.pin]) 
 end
 
 -------------------
