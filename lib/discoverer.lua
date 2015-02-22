@@ -92,7 +92,7 @@ function Discoverer:resolve(str)
     for ip, servicetable in pairs(self.discovered_services) do
         index = 1
         for name, service in pairs(servicetable) do
-            if name == str or service["s"] == str then
+            if name ~= "id" and (name == str or service["s"] == str) then
                 if index == 1 then
                     matches[ip] = {name}
                 else
