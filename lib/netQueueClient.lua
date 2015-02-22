@@ -94,8 +94,8 @@ function NQClient:processNextFromQueue()
         self.pending = true
         self.ready = false
         
-        timesToTry = req.times or 2000
-        timeBetween = req.period or 15 * storm.os.MILLISECOND
+        timesToTry = req.times or 1000
+        timeBetween = req.period or 50 * storm.os.MILLISECOND
         
         cord.new(function ()
             local i = 0
