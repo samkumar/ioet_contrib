@@ -52,7 +52,7 @@ end
 Repeatedy advertises the registered services, waiting for the time duration DELAY between advertisements.
 To stop the repeated advertisements, call storm.os.cancel on the "repeated" attribute of the advertiser.
 ]]--
-function Advertiser:advertise_repeatedly(delay)
+function Advertiser:advertiseRepeatedly(delay)
     if self.repeated then
         storm.os.cancel(self.repeated)
     end

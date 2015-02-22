@@ -6,6 +6,6 @@ adv:addService("echo", "disp", "echoes argument", function (message)
     return message
 end)
 
-adv:advertise_repeatedly(storm.os.SECOND)
+adv:advertiseRepeatedly(storm.os.SECOND)
 
 cord.enter_loop()
