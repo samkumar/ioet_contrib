@@ -22,13 +22,19 @@ function REG:r(reg, num)
     local rv = cord.await(storm.i2c.write, self.port + self.address, storm.i2c.START, arr)
     if (rv ~= storm.i2c.OK) then
         print ("ERROR ON I2C: ",rv)
+        return nil
     end
     local result = storm.array.create(num, storm.array.UINT8)
     rv = cord.await(storm.i2c.read, self.port + self.address, storm.i2c.RSTART + storm.i2c.STOP, result)
     if (rv ~= storm.i2c.OK) then
         print ("ERROR ON I2C: ",rv)
+        return nil
     end
-    return result
+    if num == 1 then
+        return result:get(1)
+    else
+        return result
+    end
 end
 
 -- Write to a given register address
