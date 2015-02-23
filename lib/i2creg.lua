@@ -14,7 +14,7 @@ end
 -- Read from a given register address
 -- REG: the register address to be read from
 -- NUM: the number of bytes to be read [OPTIONAL]
--- Return: a storm array of UNIT8
+-- Return: a number when NUM is nil or a storm array of UNIT8
 function REG:r(reg, num)
     num = num or 1
     local arr = storm.array.create(1, storm.array.UINT8)
