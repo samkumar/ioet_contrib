@@ -8,17 +8,16 @@
 -- Notification source port is 2529
 
 -- singleton
-local SVCD = {
+SVCD = {
     OK=1,
     TIMEOUT=2,
-    manifest = {},
+    ivkid = 0,
     manifest_map = {},
     blsmap = {},
     blamap = {},
     oursubs = {},
     subscribers = {},
-    nxt_time=nil,
-    th = nil
+    handlers = {},
 }
 
 
@@ -84,16 +83,14 @@ SVCD.init = function(id, onready)
    SVCD.ncsock = storm.net.udpsocket(2529, SVCD.ncdispatch)
    -- subscription socket
    SVCD.subsock = storm.net.udpsocket(2530, SVCD.subdispatch)
-
-   SVCD.ivkid = 0
-   SVCD.handlers = {}
    SVCD.manifest = {id=id }
    if id ~= nil then
        storm.os.invokePeriodically(3*storm.os.SECOND, function()
             storm.net.sendto(SVCD.asock, storm.mp.pack(SVCD.manifest), "ff02::1", 2525)
         end)
+       storm.bl.enable(id, SVCD.cchanged, onready)
    end
-   storm.bl.enable(id, SVCD.cchanged, onready)
+
 end
 
 SVCD.wcdispatch = function(pay, srcip, srcport)
@@ -208,5 +205,3 @@ SVCD.subscribe = function(targetip, svcid, attrid, on_notify)
     end
     storm.net.sendto(SVCD.ncsock, msg:as_str(), targetip, 2530)
 end
-
-return SVCD
