@@ -200,8 +200,5 @@ SVCD.subscribe = function(targetip, svcid, attrid, on_notify)
     msg:set_as(storm.array.UINT16, 1, svcid)
     msg:set_as(storm.array.UINT16, 3, attrid)
     msg:set_as(storm.array.UINT16, 5, ivkid)
-    for i=1,#msg do
-        print ("char",msg:get(i))
-    end
     storm.net.sendto(SVCD.ncsock, msg:as_str(), targetip, 2530)
 end
