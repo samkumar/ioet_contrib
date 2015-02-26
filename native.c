@@ -15,6 +15,7 @@
 #include <interface.h>
 #include <stdlib.h>
 #include <libstorm.h>
+#include <libstormarray.h>
 
 /**
  * This is required for the LTR patch that puts module tables
