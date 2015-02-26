@@ -2,7 +2,8 @@
 
 
 #define SVCD_SYMBOLS \
-    { LSTRKEY( "svcd_init"), LFUNCVAL ( svcd_init ) },
+    { LSTRKEY( "svcd_init"), LFUNCVAL ( svcd_init ) }, \
+    { LSTRKEY( "svcd_notify"), LFUNCVAL ( notify ) },
 
 
 //If this file is defining only specific functions, or if it
@@ -183,5 +184,88 @@ static int svcd_init( lua_State *L )
         lua_call(L, 3, 0);
     }
 
+    return 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// SVCD.notify() implementation
+// Maintainers: Sam Kumar <samkumar@berkeley.edu>
+//              Leonard Truong <leonardtruong@berkeley.edu>
+//              Michael Chen <mc.michaelchen.us@gmail.com>
+/////////////////////////////////////////////////////////////
+int notify_cord(lua_State* L) {
+    int header_index;
+    lua_pushvalue(L, lua_upvalueindex(1));
+    for (lua_pushnil(L); lua_next(L, 1); lua_pop(L, lua_gettop(L) - 2)) {
+	lua_pushlightfunction(L, arr_create);
+	lua_pushnumber(L, 1);
+	lua_pushnumber(L, ARR_TYPE_UINT16);
+	lua_call(L, 2, 1);
+	header_index = lua_gettop(L);
+	lua_pushstring(L, "set");
+	lua_gettable(L, -2);
+	lua_pushnumber(L, 1);
+	lua_pushvalue(L, 3);
+	lua_call(L, 2, 0);
+	lua_pushlightfunction(L, libstorm_net_sendto);
+	lua_getglobal(L, "SVCD");
+	lua_pushstring(L, "ncsock");
+	lua_gettable(L, -2);
+	lua_pushstring(L, "as_str");
+	lua_gettable(L, header_index);
+	lua_pushvalue(L, lua_upvalueindex(2));
+	lua_concat(L, 2);
+	lua_pushvalue(L, 2);
+	lua_pushnumber(L, 2527);
+	lua_getglobal(L, "cord");
+	lua_pushstring(L, "await");
+	lua_gettable(L, -2);
+	lua_pushlightfunction(L, libstorm_os_invoke_later);
+	lua_pushnumber(L, 70 * MILLISECOND_TICKS);
+	lua_call(L, 2, 0);
+    }
+    return 0;
+}
+
+int notify(lua_State* L) {
+    lua_getglobal(L, "SVCD");
+    int index_SVCD = lua_gettop(L);
+    lua_pushstring(L, "blamap");
+    lua_gettable(L, index_SVCD);
+    lua_pushvalue(L, 1);
+    lua_gettable(L, -2);
+    lua_pushvalue(L, 2);
+    lua_gettable(L, -2);
+    int index_arg0 = lua_gettop(L);
+    lua_pushlightfunction(L, libstorm_bl_notify);
+    lua_pushvalue(L, index_arg0);
+    lua_pushvalue(L, 3);
+    lua_call(L, 2, 0);
+    lua_pop(L, lua_gettop(L) - index_SVCD);
+
+    lua_pushstring(L, "subscribers");
+    lua_gettable(L, index_SVCD);
+    lua_pushvalue(L, 1);
+    lua_gettable(L, -2);
+    if (lua_isnil(L, -1)) {
+	return 0;
+    }
+
+    lua_pushvalue(L, 2);
+    lua_gettable(L, -1);
+    if (lua_isnil(L, -1)) {
+	return 0;
+    }
+    int attr_index = lua_gettop(L);
+
+    lua_getglobal(L, "cord");
+    lua_pushstring(L, "new");
+    lua_gettable(L, -2);
+
+    lua_pushvalue(L, attr_index);
+    lua_pushvalue(L, 3);
+    lua_pushcclosure(L, &notify_cord, 2);
+
+    lua_call(L, 1, 0);
     return 0;
 }
