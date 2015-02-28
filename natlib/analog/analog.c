@@ -37,68 +37,45 @@ void c_adcife_init()
     //use APB clock
     ADCIFE->cfg.bits.clksel = 1;
     //The APB clock is at 48Mhz, we need it to be below 1.8 Mhz. /64 gets us closest
-    ADCIFE->cfg.bits.prescal = 7;//0b100;
+    ADCIFE->cfg.bits.prescal = 0b100;
     //Set speed for 300ksps
     ADCIFE->cfg.bits.speed = 0b00;
-    //Set the reference to be the external AREF pin
-    ADCIFE->cfg.bits.refsel = 0b010;
-
-    {
-        int i;
-        for (i=0;i<10000;i++);
-    }
+    //Reset the module
     ADCIFE->cr.bits.swrst = 1;
-    ADCIFE->cr.bits.refbufen = 1;
-    ADCIFE->cr.bits.bgreqen = 1;
-    ADCIFE->tim = 0x11f;
-    //Enable the ADC
+    //Enable it
     ADCIFE->cr.bits.en = 1;
     //Wait for it to be enabled
-    while(!ADCIFE->sr.bits.en)
-    {
-        printf("waiting for enabled, sr is %d\n", ADCIFE->sr.flat);
-    }
-    {
-        int i;
-        for (i=0;i<10000;i++);
-    }
-        //use APB clock
-    ADCIFE->cfg.bits.clksel = 1;
-    //The APB clock is at 48Mhz, we need it to be below 1.8 Mhz. /64 gets us closest
-    ADCIFE->cfg.bits.prescal = 7;//0b100;
-    //Set speed for 300ksps
-    ADCIFE->cfg.bits.speed = 0b00;
+    while(!ADCIFE->sr.bits.en);
     //Set the reference to be the external AREF pin
     ADCIFE->cfg.bits.refsel = 0b010;
+    //Set the reference to be the internal 1V bandgap
+    //ADCIFE->cfg.bits.refsel = 0;
     ADCIFE->cr.bits.refbufen = 1;
     ADCIFE->cr.bits.bgreqen = 1;
-    ADCIFE->tim = 0x11f;
-    //ADCIFE->calib = 0x00007007;
-    printf("SR POST ENABLE: %x\n", ADCIFE->sr);
-        //Configure to FS_AN0
-    adcife_seqcfg_t seqcfg;
-        ADCIFE->scr.bits.seoc = 1;
-
-    seqcfg.flat = 0;
-    seqcfg.bits.muxpos = chanmap[0];
-    seqcfg.bits.gcomp = 0;
-    seqcfg.bits.bipolar = 1;
-    seqcfg.bits.internal = 0b10;
-    seqcfg.bits.muxneg = 0b011; //gnd
-    seqcfg.bits.gain = 0;
-    ADCIFE->seqcfg.flat = seqcfg.flat;
 }
 
 int c_adcife_sample_an0()
 {
-
+    adcife_seqcfg_t seqcfg;
     //Clear conversion flag
-
+    ADCIFE->scr.bits.seoc = 1;
+    //Clear out the struct
+    seqcfg.flat = 0;
+    //Set the positive channel to A0
+    seqcfg.bits.muxpos = chanmap[0];
+    //Enable bipolar mode, this seems to drastically reduce noise
+    seqcfg.bits.bipolar = 1;
+    //Enable the internal voltage source for the negative reference
+    seqcfg.bits.internal = 0b10;
+    //Set the negative reference to ground
+    seqcfg.bits.muxneg = 0b011;
+    //Set the gain to 1/2
+    //seqcfg.bits.gain = 0b111;
+    //Set it
+    ADCIFE->seqcfg = seqcfg;
     //Start the conversion
     ADCIFE->cr.bits.strig = 1;
-    while(!ADCIFE->sr.bits.seoc){
-        printf("waited\n");
-    }
+    while(!ADCIFE->sr.bits.seoc);
     return ADCIFE->lcv.bits.lcv;
 }
 
