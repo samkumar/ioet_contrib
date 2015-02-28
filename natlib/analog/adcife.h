@@ -127,6 +127,7 @@ typedef struct
     uint32_t        ier;    //off=0x0030
     uint32_t        idr;    //off=0x0034
     uint32_t        imr;    //off=0x0038
+    uint32_t        calib;  //off=0x003C
 } adcife_t;
 
 adcife_t volatile * const ADCIFE = (adcife_t volatile *) 0x40038000;
