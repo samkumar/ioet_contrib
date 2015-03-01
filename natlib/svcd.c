@@ -195,28 +195,40 @@ static int svcd_init( lua_State *L )
 /////////////////////////////////////////////////////////////
 int notify_cord(lua_State* L) {
     int header_index;
+    // Push SVCD.subscribers[svc_id][attr_id] (upvalue 1) onto stack
     lua_pushvalue(L, lua_upvalueindex(1));
+
+    // iterate by key value pairs using lua_next
+    // see: http://www.lua.org/manual/5.1/manual.html#lua_next
     for (lua_pushnil(L); lua_next(L, 1); lua_pop(L, lua_gettop(L) - 2)) {
+
+        // local header = storm.array.create(1, storm.array.UINT16)
 	lua_pushlightfunction(L, arr_create);
 	lua_pushnumber(L, 1);
 	lua_pushnumber(L, ARR_TYPE_UINT16);
 	lua_call(L, 2, 1);
 	header_index = lua_gettop(L);
+
+        // header:set(1, v)
 	lua_pushstring(L, "set");
 	lua_gettable(L, -2);
 	lua_pushnumber(L, 1);
-	lua_pushvalue(L, 3);
+	lua_pushvalue(L, 3);  // Store current value (3rd element on stack)
 	lua_call(L, 2, 0);
+
+        // storm.net.sendto(SVCD.ncsock, header:as_str()..value, k, 2527)
 	lua_pushlightfunction(L, libstorm_net_sendto);
 	lua_getglobal(L, "SVCD");
 	lua_pushstring(L, "ncsock");
 	lua_gettable(L, -2);
 	lua_pushstring(L, "as_str");
 	lua_gettable(L, header_index);
-	lua_pushvalue(L, lua_upvalueindex(2));
-	lua_concat(L, 2);
-	lua_pushvalue(L, 2);
+	lua_pushvalue(L, lua_upvalueindex(2));  // value stored as upvalue 2
+	lua_concat(L, 2);  // Use lua's concat operator (..)
+	lua_pushvalue(L, 2);  // Push current key
 	lua_pushnumber(L, 2527);
+
+        // cord.await(storm.os.invokeLater, 70*storm.os.MILLISECOND)
 	lua_getglobal(L, "cord");
 	lua_pushstring(L, "await");
 	lua_gettable(L, -2);
@@ -228,21 +240,29 @@ int notify_cord(lua_State* L) {
 }
 
 int notify(lua_State* L) {
+    // args: svc_id, attr_id, value
+
+    // SVCD.blamap[svc_id][attr_id]
     lua_getglobal(L, "SVCD");
     int index_SVCD = lua_gettop(L);
     lua_pushstring(L, "blamap");
     lua_gettable(L, index_SVCD);
-    lua_pushvalue(L, 1);
+    lua_pushvalue(L, 1);  // Push on svc_id
     lua_gettable(L, -2);
-    lua_pushvalue(L, 2);
+    lua_pushvalue(L, 2);  // Push on attr_id
     lua_gettable(L, -2);
     int index_arg0 = lua_gettop(L);
-    lua_pushlightfunction(L, libstorm_bl_notify);
-    lua_pushvalue(L, index_arg0);
-    lua_pushvalue(L, 3);
-    lua_call(L, 2, 0);
-    lua_pop(L, lua_gettop(L) - index_SVCD);
 
+    // storm.bl.notify(SVCD.blamap[svc_id][attr_id], value)
+    lua_pushlightfunction(L, libstorm_bl_notify);
+    lua_pushvalue(L, index_arg0);  // Push on SVCD.blamap[svc_id][attr_id]
+    lua_pushvalue(L, 3);  // Push on value
+    lua_call(L, 2, 0);
+    lua_pop(L, lua_gettop(L) - index_SVCD);  // Clear stack
+
+    // if SVCD.subscribers[svc_id] == nil then
+    //  return
+    // end
     lua_pushstring(L, "subscribers");
     lua_gettable(L, index_SVCD);
     lua_pushvalue(L, 1);
@@ -251,20 +271,34 @@ int notify(lua_State* L) {
 	return 0;
     }
 
+    // if SVCD.subscribers[svc_id][attr_id] == nil then
+    //  return
+    // end
     lua_pushvalue(L, 2);
     lua_gettable(L, -1);
     if (lua_isnil(L, -1)) {
 	return 0;
     }
-    int attr_index = lua_gettop(L);
 
+    int attr_index = lua_gettop(L);  // Index of SVCD.subscribers[svc_id][attr_id]
+
+    // cord.new(function()
+    //     for k, v in pairs(SVCD.subscribers[svc_id][attr_id]) do
+    //         local header = storm.array.create(1, storm.array.UINT16)
+    //         header:set(1, v)
+    //         storm.net.sendto(SVCD.ncsock, header:as_str()..value, k, 2527)
+    //         cord.await(storm.os.invokeLater, 70*storm.os.MILLISECOND)
+    //     end
+    // end)
     lua_getglobal(L, "cord");
     lua_pushstring(L, "new");
     lua_gettable(L, -2);
 
+    // Push SVCD.subscribers[svc_id][attr_id] as an upvalue for closure
     lua_pushvalue(L, attr_index);
+    // Push value as upvalue for closure
     lua_pushvalue(L, 3);
-    lua_pushcclosure(L, &notify_cord, 2);
+    lua_pushcclosure(L, &notify_cord, 2);  // Anonymous function implemented in notify_cord
 
     lua_call(L, 1, 0);
     return 0;
