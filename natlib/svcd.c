@@ -198,44 +198,50 @@ int notify_cord(lua_State* L) {
     // Push SVCD.subscribers[svc_id][attr_id] (upvalue 1) onto stack
     lua_pushvalue(L, lua_upvalueindex(1));
 
-    // iterate by key value pairs using lua_next
-    // see: http://www.lua.org/manual/5.1/manual.html#lua_next
-    for (lua_pushnil(L); lua_next(L, 1); lua_pop(L, lua_gettop(L) - 2)) {
+    // set previous key
+    lua_pushvalue(L, lua_upvalueindex(3));
 
-        // local header = storm.array.create(1, storm.array.UINT16)
-	lua_pushlightfunction(L, arr_create);
-	lua_pushnumber(L, 1);
-	lua_pushnumber(L, ARR_TYPE_UINT16);
-	lua_call(L, 2, 1);
-	header_index = lua_gettop(L);
-
-        // header:set(1, v)
-	lua_pushstring(L, "set");
-	lua_gettable(L, -2);
-	lua_pushnumber(L, 1);
-	lua_pushvalue(L, 3);  // Store current value (3rd element on stack)
-	lua_call(L, 2, 0);
-
-        // storm.net.sendto(SVCD.ncsock, header:as_str()..value, k, 2527)
-	lua_pushlightfunction(L, libstorm_net_sendto);
-	lua_getglobal(L, "SVCD");
-	lua_pushstring(L, "ncsock");
-	lua_gettable(L, -2);
-	lua_pushstring(L, "as_str");
-	lua_gettable(L, header_index);
-	lua_pushvalue(L, lua_upvalueindex(2));  // value stored as upvalue 2
-	lua_concat(L, 2);  // Use lua's concat operator (..)
-	lua_pushvalue(L, 2);  // Push current key
-	lua_pushnumber(L, 2527);
-
-        // cord.await(storm.os.invokeLater, 70*storm.os.MILLISECOND)
-	lua_getglobal(L, "cord");
-	lua_pushstring(L, "await");
-	lua_gettable(L, -2);
-	lua_pushlightfunction(L, libstorm_os_invoke_later);
-	lua_pushnumber(L, 70 * MILLISECOND_TICKS);
-	lua_call(L, 2, 0);
+    // get next key
+    if (lua_next(L, 1)) {
+        // return if we've finished
+	return 0;
     }
+
+    // local header = storm.array.create(1, storm.array.UINT16)
+    lua_pushlightfunction(L, arr_create);
+    lua_pushnumber(L, 1);
+    lua_pushnumber(L, ARR_TYPE_UINT16);
+    lua_call(L, 2, 1);
+    header_index = lua_gettop(L);
+
+    // header:set(1, v)
+    lua_pushstring(L, "set");
+    lua_gettable(L, -2);
+    lua_pushnumber(L, 1);
+    lua_pushvalue(L, 3);  // Store current value (3rd element on stack)
+    lua_call(L, 2, 0);
+
+    // storm.net.sendto(SVCD.ncsock, header:as_str()..value, k, 2527)
+    lua_pushlightfunction(L, libstorm_net_sendto);
+    lua_getglobal(L, "SVCD");
+    lua_pushstring(L, "ncsock");
+    lua_gettable(L, -2);
+    lua_pushstring(L, "as_str");
+    lua_gettable(L, header_index);
+    lua_pushvalue(L, lua_upvalueindex(2));  // value stored as upvalue 2
+    lua_concat(L, 2);  // Use lua's concat operator (..)
+    lua_pushvalue(L, 2);  // Push current key
+    lua_pushnumber(L, 2527);
+
+    lua_pushlightfunction(L, libstorm_os_invoke_later);
+    lua_pushnumber(L, 70 * MILLISECOND_TICKS);
+
+    // Push next upvalues
+    lua_pushvalue(L, 1);  // Subscribers table
+    lua_pushnil(L, lua_upvalueindex(2));  // val
+    lua_pushvalue(L, 3);  // Current key
+    lua_pushcclosure(L, &notify_cord, 3);  // continuation
+    lua_call(L, 3, 0);
     return 0;
 }
 
@@ -282,6 +288,7 @@ int notify(lua_State* L) {
 
     int attr_index = lua_gettop(L);  // Index of SVCD.subscribers[svc_id][attr_id]
 
+    // Original lua code:
     // cord.new(function()
     //     for k, v in pairs(SVCD.subscribers[svc_id][attr_id]) do
     //         local header = storm.array.create(1, storm.array.UINT16)
@@ -290,15 +297,19 @@ int notify(lua_State* L) {
     //         cord.await(storm.os.invokeLater, 70*storm.os.MILLISECOND)
     //     end
     // end)
-    lua_getglobal(L, "cord");
-    lua_pushstring(L, "new");
-    lua_gettable(L, -2);
+
+    // We implemented this using a recursive continuation with a closure to keep
+    // track of state.  We start by calling the continuation with nil as the
+    // current key.  It then uses lua_next to get the next key, then recursively
+    // sets itself as the continuation with the new current key.  Once the last
+    // key is processed the final continuation will stop, ending the recursion.
 
     // Push SVCD.subscribers[svc_id][attr_id] as an upvalue for closure
     lua_pushvalue(L, attr_index);
     // Push value as upvalue for closure
     lua_pushvalue(L, 3);
-    lua_pushcclosure(L, &notify_cord, 2);  // Anonymous function implemented in notify_cord
+    lua_pushnil(L, 3);
+    lua_pushcclosure(L, &notify_cord, 3);  // Anonymous function implemented in notify_cord
 
     lua_call(L, 1, 0);
     return 0;
