@@ -195,14 +195,9 @@ static int svcd_init( lua_State *L )
 /////////////////////////////////////////////////////////////
 int notify_cord(lua_State* L) {
     int header_index;
-    // Push SVCD.subscribers[svc_id][attr_id] (upvalue 1) onto stack
-    lua_pushvalue(L, lua_upvalueindex(1));
-
-    // set previous key
-    lua_pushvalue(L, lua_upvalueindex(3));
 
     // get next key
-    if (lua_next(L, 1)) {
+    if (lua_next(L, 2)) {
         // return if we've finished
 	return 0;
     }
@@ -228,7 +223,7 @@ int notify_cord(lua_State* L) {
     lua_gettable(L, -2);
     lua_pushstring(L, "as_str");
     lua_gettable(L, header_index);
-    lua_pushvalue(L, lua_upvalueindex(2));  // value stored as upvalue 2
+    lua_pushvalue(L, 1);  // value stored as argument 1
     lua_concat(L, 2);  // Use lua's concat operator (..)
     lua_pushvalue(L, 2);  // Push current key
     lua_pushnumber(L, 2527);
@@ -236,12 +231,12 @@ int notify_cord(lua_State* L) {
     lua_pushlightfunction(L, libstorm_os_invoke_later);
     lua_pushnumber(L, 70 * MILLISECOND_TICKS);
 
-    // Push next upvalues
-    lua_pushvalue(L, 1);  // Subscribers table
-    lua_pushvalue(L, lua_upvalueindex(2));  // val
+    // Push next args to continuation
+    lua_pushlightfunction(L, notify_cord);  // continuation
+    lua_pushvalue(L, 1);  // val
+    lua_pushvalue(L, 2);  // Subscribers table
     lua_pushvalue(L, 3);  // Current key
-    lua_pushcclosure(L, &notify_cord, 3);  // continuation
-    lua_call(L, 3, 0);
+    lua_call(L, 4, 0);
     return 0;
 }
 
@@ -298,19 +293,19 @@ int notify(lua_State* L) {
     //     end
     // end)
 
-    // We implemented this using a recursive continuation with a closure to keep
-    // track of state.  We start by calling the continuation with nil as the
-    // current key.  It then uses lua_next to get the next key, then recursively
-    // sets itself as the continuation with the new current key.  Once the last
-    // key is processed the final continuation will stop, ending the recursion.
+    // We implemented this using a recursive continuation. We start by calling
+    // the continuation with nil as the current key.  It then uses lua_next to
+    // get the next key, then recursively sets itself as the continuation with
+    // the new current key.  Once the last key is processed the final
+    // continuation will stop, ending the recursion.
 
-    // Push SVCD.subscribers[svc_id][attr_id] as an upvalue for closure
-    lua_pushvalue(L, attr_index);
-    // Push value as upvalue for closure
+    lua_pushlightfunction(L, notify_cord);
+    // Push value
     lua_pushvalue(L, 3);
+    // Push SVCD.subscribers[svc_id][attr_id]
+    lua_pushvalue(L, attr_index);
     lua_pushnil(L);
-    lua_pushcclosure(L, &notify_cord, 3);  // Anonymous function implemented in notify_cord
 
-    lua_call(L, 0, 0);
+    lua_call(L, 3, 0);
     return 0;
 }
