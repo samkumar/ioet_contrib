@@ -194,6 +194,7 @@ static int svcd_init( lua_State *L )
 //              Michael Chen <mc.michaelchen.us@gmail.com>
 /////////////////////////////////////////////////////////////
 int notify_cord(lua_State* L) {
+    // args val, SVCD.subscribers[svc_id][attr_id], key
     int header_index;
 
     // get next key
@@ -228,6 +229,7 @@ int notify_cord(lua_State* L) {
     lua_pushvalue(L, 2);  // Push current key
     lua_pushnumber(L, 2527);
 
+    // invoke continuation later
     lua_pushlightfunction(L, libstorm_os_invoke_later);
     lua_pushnumber(L, 70 * MILLISECOND_TICKS);
 
