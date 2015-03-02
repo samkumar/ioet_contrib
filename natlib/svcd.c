@@ -311,6 +311,6 @@ int notify(lua_State* L) {
     lua_pushnil(L);
     lua_pushcclosure(L, &notify_cord, 3);  // Anonymous function implemented in notify_cord
 
-    lua_call(L, 1, 0);
+    lua_call(L, 0, 0);
     return 0;
 }
