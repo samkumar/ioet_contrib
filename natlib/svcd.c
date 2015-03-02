@@ -238,7 +238,7 @@ int notify_cord(lua_State* L) {
 
     // Push next upvalues
     lua_pushvalue(L, 1);  // Subscribers table
-    lua_pushnil(L, lua_upvalueindex(2));  // val
+    lua_pushvalue(L, lua_upvalueindex(2));  // val
     lua_pushvalue(L, 3);  // Current key
     lua_pushcclosure(L, &notify_cord, 3);  // continuation
     lua_call(L, 3, 0);
