@@ -30,9 +30,6 @@ static const int chanmap [] = {
 //Pure C functions
 void c_adcife_init()
 {
-    //Still debugging the huge noise on the conversions
-    //Hence duplicated code and weird delays here
-
     //Reset the ADCIFE so that we can apply any configuration changes
     //use APB clock
     ADCIFE->cfg.bits.clksel = 1;
