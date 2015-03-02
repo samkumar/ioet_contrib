@@ -1,11 +1,27 @@
+// This file is part of the Firestorm Software Distribution.
+//
+// FSD is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// FSD is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with FSD.  If not, see <http://www.gnu.org/licenses/>.
+
+// Author: Michael Andersen <m.andersen@cs.berkeley.edu>
 
 #include "adcife.h"
+#include "analog.h"
 
 #define ADCIFE_SYMBOLS \
     { LSTRKEY( "adcife_init"), LFUNCVAL ( adcife_init ) }, \
     { LSTRKEY( "adcife_new"), LFUNCVAL ( adcife_new ) }, \
     { LSTRKEY( "adcife_sample_an0"), LFUNCVAL ( adcife_sample_an0 ) },
-
 
 /* The analog pins on the firestorm go through several layers of translation
  * before you get to the channel numbers that are expected for the analog
@@ -51,8 +67,10 @@ void c_adcife_init()
     ADCIFE->cr.bits.bgreqen = 1;
 }
 
-int c_adcife_sample_an0()
+int c_adcife_sample_channel(uint8_t channel)
 {
+    //TODO: use the channel, maybe add more parameters
+
     adcife_seqcfg_t seqcfg;
     //Clear conversion flag
     ADCIFE->scr.bits.seoc = 1;
@@ -85,7 +103,8 @@ int adcife_init(lua_State *L)
 
 int adcife_sample_an0(lua_State *L)
 {
-    int sample = c_adcife_sample_an0();
+    //TODO: turn this into a metamethod on a table, look in stormarray.c for examples
+    int sample = c_adcife_sample_channel(0);
     lua_pushnumber(L, sample);
     return 1;
 }
@@ -93,5 +112,7 @@ int adcife_sample_an0(lua_State *L)
 //Lua: storm.n.adcife_new(poschan, negchan, gain, resolution)
 int adcife_new(lua_State *L)
 {
+    //TODO: make this construct a table with a rotable metatable and return it
+    //see stormarray for examples.
     return 0;
 }
