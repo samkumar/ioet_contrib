@@ -198,7 +198,7 @@ int notify_cord(lua_State* L) {
     int header_index;
 
     // get next key
-    if (lua_next(L, 2)) {
+    if (!lua_next(L, 2)) {
         // return if we've finished
 	return 0;
     }
@@ -213,21 +213,25 @@ int notify_cord(lua_State* L) {
     // header:set(1, v)
     lua_pushstring(L, "set");
     lua_gettable(L, -2);
+    lua_pushvalue(L, header_index);
     lua_pushnumber(L, 1);
-    lua_pushvalue(L, 3);  // Store current value (3rd element on stack)
-    lua_call(L, 2, 0);
+    lua_pushvalue(L, 4);  // Store current value (3rd element on stack)
+    lua_call(L, 3, 0);
 
     // storm.net.sendto(SVCD.ncsock, header:as_str()..value, k, 2527)
-    lua_pushlightfunction(L, libstorm_net_sendto);
     lua_getglobal(L, "SVCD");
+    lua_pushlightfunction(L, libstorm_net_sendto);
     lua_pushstring(L, "ncsock");
-    lua_gettable(L, -2);
+    lua_gettable(L, -3);
     lua_pushstring(L, "as_str");
     lua_gettable(L, header_index);
+    lua_pushvalue(L, header_index);
+    lua_call(L, 1, 1);
     lua_pushvalue(L, 1);  // value stored as argument 1
     lua_concat(L, 2);  // Use lua's concat operator (..)
-    lua_pushvalue(L, 2);  // Push current key
+    lua_pushvalue(L, 3);  // Push current key
     lua_pushnumber(L, 2527);
+    lua_call(L, 4, 0);
 
     // invoke continuation later
     lua_pushlightfunction(L, libstorm_os_invoke_later);
@@ -238,13 +242,12 @@ int notify_cord(lua_State* L) {
     lua_pushvalue(L, 1);  // val
     lua_pushvalue(L, 2);  // Subscribers table
     lua_pushvalue(L, 3);  // Current key
-    lua_call(L, 4, 0);
+    lua_call(L, 5, 0);
     return 0;
 }
 
 int notify(lua_State* L) {
     // args: svc_id, attr_id, value
-
     // SVCD.blamap[svc_id][attr_id]
     lua_getglobal(L, "SVCD");
     int index_SVCD = lua_gettop(L);
@@ -278,7 +281,7 @@ int notify(lua_State* L) {
     //  return
     // end
     lua_pushvalue(L, 2);
-    lua_gettable(L, -1);
+    lua_gettable(L, -2);
     if (lua_isnil(L, -1)) {
 	return 0;
     }
