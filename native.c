@@ -27,6 +27,7 @@
 //Include some libs as C files into this file
 #include "natlib/util.c"
 #include "natlib/svcd.c"
+#include "natlib/togglepin.c"
 
 
 ////////////////// BEGIN FUNCTIONS /////////////////////////////
@@ -181,6 +182,8 @@ const LUA_REG_TYPE contrib_native_map[] =
     { LSTRKEY( "makecounter"), LFUNCVAL ( contrib_makecounter ) },
 
     SVCD_SYMBOLS
+
+    { LSTRKEY( "toggleD2" ), LFUNCVAL( toggleD2 ) },
 
     /* Constants for the Temp sensor. */
     // -- Register address --
