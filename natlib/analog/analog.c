@@ -21,7 +21,22 @@
 #define ADCIFE_SYMBOLS \
     { LSTRKEY( "adcife_init"), LFUNCVAL ( adcife_init ) }, \
     { LSTRKEY( "adcife_new"), LFUNCVAL ( adcife_new ) }, \
-    { LSTRKEY( "adcife_sample_an0"), LFUNCVAL ( adcife_sample_an0 ) },
+    { LSTRKEY( "adcife_sample"), LFUNCVAL (adcife_sample) }, \
+    { LSTRKEY( "ADCIFE_GAIN_1"), LNUMVAL ( 0b000 ) }, \
+    { LSTRKEY( "ADCIFE_GAIN_2"), LNUMVAL ( 0b001 ) }, \
+    { LSTRKEY( "ADCIFE_GAIN_4"), LNUMVAL ( 0b010 ) }, \
+    { LSTRKEY( "ADCIFE_GAIN_8"), LNUMVAL ( 0b011 ) }, \
+    { LSTRKEY( "ADCIFE_GAIN_16"), LNUMVAL ( 0b100 ) }, \
+    { LSTRKEY( "ADCIFE_GAIN_32"), LNUMVAL ( 0b101 ) }, \
+    { LSTRKEY( "ADCIFE_GAIN_64"), LNUMVAL ( 0b110 ) }, \
+    { LSTRKEY( "ADCIFE_GAIN_HALF"), LNUMVAL ( 0b111 ) }, \
+    { LSTRKEY( "PIN_A0"), LNUMVAL ( 0 ) }, \
+    { LSTRKEY( "PIN_A1"), LNUMVAL ( 1 ) }, \
+    { LSTRKEY( "PIN_A2"), LNUMVAL ( 2 ) }, \
+    { LSTRKEY( "PIN_A3"), LNUMVAL ( 3 ) }, \
+    { LSTRKEY( "PIN_A4"), LNUMVAL ( 4 ) }, \
+    { LSTRKEY( "PIN_A5"), LNUMVAL ( 5 ) },
+    
 
 /* The analog pins on the firestorm go through several layers of translation
  * before you get to the channel numbers that are expected for the analog
@@ -67,7 +82,7 @@ void c_adcife_init()
     ADCIFE->cr.bits.bgreqen = 1;
 }
 
-int c_adcife_sample_channel(uint8_t channel)
+int c_adcife_sample_channel(uint8_t channel, uint8_t gain_exp)
 {
     //TODO: use the channel, maybe add more parameters
 
@@ -76,8 +91,8 @@ int c_adcife_sample_channel(uint8_t channel)
     ADCIFE->scr.bits.seoc = 1;
     //Clear out the struct
     seqcfg.flat = 0;
-    //Set the positive channel to A0
-    seqcfg.bits.muxpos = chanmap[0];
+    //Set the positive channel
+    seqcfg.bits.muxpos = chanmap[channel];
     //Enable bipolar mode, this seems to drastically reduce noise
     seqcfg.bits.bipolar = 1;
     //Enable the internal voltage source for the negative reference
@@ -85,7 +100,7 @@ int c_adcife_sample_channel(uint8_t channel)
     //Set the negative reference to ground
     seqcfg.bits.muxneg = 0b011;
     //Set the gain to 1/2
-    //seqcfg.bits.gain = 0b111;
+    seqcfg.bits.gain = gain_exp;
     //Set it
     ADCIFE->seqcfg = seqcfg;
     //Start the conversion
@@ -104,7 +119,16 @@ int adcife_init(lua_State *L)
 int adcife_sample_an0(lua_State *L)
 {
     //TODO: turn this into a metamethod on a table, look in stormarray.c for examples
-    int sample = c_adcife_sample_channel(0);
+int sample = c_adcife_sample_channel(0, 0);
+    lua_pushnumber(L, sample);
+    return 1;
+}
+
+int adcife_sample(lua_State *L)
+{
+    int channel = lua_tonumber(L, 1);
+    int gain = lua_tonumber(L, 2);
+    int sample = c_adcife_sample_channel(channel, gain);
     lua_pushnumber(L, sample);
     return 1;
 }
