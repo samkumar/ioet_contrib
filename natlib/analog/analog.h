@@ -19,7 +19,7 @@
 #define __ANALOG_H__
 
 void c_adcife_init();
-int c_adcife_sample_channel(uint8_t channel);
+int c_adcife_sample_channel(uint8_t channel, uint8_t gain);
 
 
 #endif
