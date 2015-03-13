@@ -94,6 +94,9 @@ function l(msg)
     storm.net.sendto(brsock, msg, "ff02::1",9000)
 end
 
+function l2(dest, msg)
+    storm.net.sendto(brsock, msg, dest, 9000)
+end
 SVCD.init("unused", onready)
 
 
