@@ -6,9 +6,7 @@ t.a = "abc"
 t.b = 123
 t.c = {1,2,3}
 t.d = {}
-t.d["a"] = 7
-t.d["b"] = 8
-t.d["c"] = 9
+t.d = {a= 7, b= 8, c= 9}
 print("packing", t)
 
 -- call storm.mp.pack with the target as the argument. The target
