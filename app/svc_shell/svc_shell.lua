@@ -90,6 +90,10 @@ end
 brsock = storm.net.udpsocket(9001, function()
 end)
 
+rstsock = storm.net.udpsocket(666, function()
+    storm.os.reset()
+end)
+
 function l(msg)
     storm.net.sendto(brsock, msg, "ff02::1",9000)
 end
