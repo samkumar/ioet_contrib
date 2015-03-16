@@ -27,6 +27,7 @@
 #include "natlib/util.c"
 #include "natlib/svcd.c"
 #include "natlib/analog/analog.c"
+#include "natlib/neopixel.c"
 
 
 ////////////////// BEGIN FUNCTIONS /////////////////////////////
@@ -182,6 +183,7 @@ const LUA_REG_TYPE contrib_native_map[] =
 
     SVCD_SYMBOLS
     ADCIFE_SYMBOLS
+    NEOPIXEL_SYMBOLS
 
     /* Constants for the Temp sensor. */
     // -- Register address --
