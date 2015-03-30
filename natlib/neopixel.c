@@ -31,45 +31,45 @@ void ws2812_sendarray(uint8_t *data, int datlen, uint32_t maskhi, uint32_t maskl
 static int neopixel( lua_State *L )
 {
     uint16_t count;
-	int pinspec;
+    int pinspec;
     storm_array_t *arr = lua_touserdata(L, 1);
     if (!arr)
     {
         return luaL_error(L, "invalid array");
     }
-	if (arr->type != ARR_TYPE_UINT8)
-	{
+    if (arr->type != ARR_TYPE_UINT8)
+    {
         return luaL_error(L, "wrong array type: not uint8");
-	}
+    }
 
     count = arr->len >> arr_shiftmap[arr->type];
 
     pinspec = luaL_checkint( L, 2 );
     if (pinspec < 0 || pinspec > MAXPINSPEC)
-	{
+    {
       return luaL_error( L, "invalid IO pin");
-	}
+    }
 
-	uint32_t port_offset = pinspec_map[pinspec] & 0xff00;
-	uint32_t pin_offset = pinspec_map[pinspec] & 0x00ff;
+    uint32_t port_offset = pinspec_map[pinspec] & 0xff00;
+    uint32_t pin_offset = pinspec_map[pinspec] & 0x00ff;
 
-	uint32_t volatile *port_gpio_enable = (uint32_t *)(0x400E1000 + port_offset + 0x004);
-	uint32_t volatile *port_output_enable = (uint32_t *)(0x400E1000 + port_offset + 0x044);
-	uint32_t volatile *port_set = (uint32_t *)(0x400E1000 + port_offset + 0x054);
-	uint32_t volatile *port_clr = (uint32_t *)(0x400E1000 + port_offset + 0x058);
+    uint32_t volatile *port_gpio_enable = (uint32_t *)(0x400E1000 + port_offset + 0x004);
+    uint32_t volatile *port_output_enable = (uint32_t *)(0x400E1000 + port_offset + 0x044);
+    uint32_t volatile *port_set = (uint32_t *)(0x400E1000 + port_offset + 0x054);
+    uint32_t volatile *port_clr = (uint32_t *)(0x400E1000 + port_offset + 0x058);
 
-	*port_gpio_enable = (1 << pin_offset); // enable D2
-	*port_output_enable = (1 << pin_offset); // set D2 to output
+    *port_gpio_enable = (1 << pin_offset); // enable D2
+    *port_output_enable = (1 << pin_offset); // set D2 to output
 
-	ws2812_sendarray((uint8_t*)ARR_START(arr),
-					 count,
-					 (1 << pin_offset),
-					 (1 << pin_offset),
-					 port_set,
-					 port_clr
-		);
+    ws2812_sendarray((uint8_t*)ARR_START(arr),
+                     count,
+                     (1 << pin_offset),
+                     (1 << pin_offset),
+                     port_set,
+                     port_clr
+        );
 
-	return 0;
+    return 0;
 }
 
 /*****************************
@@ -81,11 +81,11 @@ static int neopixel( lua_State *L )
 ******************************/
 
 
-#define ws2812_port_set ((uint32_t*)(0x400E1000 + 0x054))	// Address of the data port register to set the pin
-#define ws2812_port_clr	((uint32_t*)(0x400E1000 + 0x058))	// Address of the data port register to clear the pin
+#define ws2812_port_set ((uint32_t*)(0x400E1000 + 0x054))   // Address of the data port register to set the pin
+#define ws2812_port_clr ((uint32_t*)(0x400E1000 + 0x058))   // Address of the data port register to clear the pin
 
-#define ws2812_mask_set  (1<<16)		// Bitmask to set the data out pin
-#define ws2812_mask_clr  (1<<16)		// Bitmask to clear the data out pin
+#define ws2812_mask_set  (1<<16)        // Bitmask to set the data out pin
+#define ws2812_mask_clr  (1<<16)        // Bitmask to clear the data out pin
 
 #define ws2812_cpuclk 48000000
 
@@ -94,26 +94,26 @@ static int neopixel( lua_State *L )
 ///////////////////////////////////////////////////////////////////////
 
 #if (ws2812_cpuclk<8000000)
-	#error "Minimum clockspeed for ARM ws2812 library is 8 Mhz!"
+    #error "Minimum clockspeed for ARM ws2812 library is 8 Mhz!"
 #endif
 
 #if (ws2812_cpuclk>60000000)
-	#error "Maximum clockspeed for ARM ws2812 library is 60 Mhz!"
+    #error "Maximum clockspeed for ARM ws2812 library is 60 Mhz!"
 #endif
 
 
 
 
-#define ws2812_ctot	(((ws2812_cpuclk/1000)*1250)/1000000)
-#define ws2812_t1	(((ws2812_cpuclk/1000)*375 )/1000000)		// floor
-#define ws2812_t2	(((ws2812_cpuclk/1000)*625+500000)/1000000) // ceil
+#define ws2812_ctot (((ws2812_cpuclk/1000)*1250)/1000000)
+#define ws2812_t1   (((ws2812_cpuclk/1000)*375 )/1000000)       // floor
+#define ws2812_t2   (((ws2812_cpuclk/1000)*625+500000)/1000000) // ceil
 
 #define w1 (ws2812_t1-2)
 #define w2 (ws2812_t2-ws2812_t1-2+1)
 #define w3 (ws2812_ctot-ws2812_t2-5)
 
-#define ws2812_DEL1 "	nop		\n\t"
-#define ws2812_DEL2 "	b	.+2	\n\t"
+#define ws2812_DEL1 "   nop     \n\t"
+#define ws2812_DEL2 "   b   .+2 \n\t"
 #define ws2812_DEL4 ws2812_DEL2 ws2812_DEL2
 #define ws2812_DEL8 ws2812_DEL4 ws2812_DEL4
 #define ws2812_DEL16 ws2812_DEL8 ws2812_DEL8
@@ -121,77 +121,77 @@ static int neopixel( lua_State *L )
 
 void ws2812_sendarray(uint8_t *data,int datlen, uint32_t maskhi, uint32_t masklo, volatile uint32_t *set, volatile uint32_t *clr)
 {
-	uint32_t i = 0; // set value to avoid warning
-	uint32_t curbyte;
+    uint32_t i = 0; // set value to avoid warning
+    uint32_t curbyte;
 
-	while (datlen--) {
-		curbyte=*data++;
+    while (datlen--) {
+        curbyte=*data++;
 
-	asm volatile(
-			"		cpsid i						\n\t" // disable interrupts
-			"		lsl %[dat],#24				\n\t"
-			"		mov %[ctr],#8				\n\t"
-			"ilop%=:							\n\t"
-			"		lsls %[dat], #1				\n\t"
-			"		str %[maskhi], [%[set]]		\n\t"
+    asm volatile(
+            "       cpsid i                     \n\t" // disable interrupts
+            "       lsl %[dat],#24              \n\t"
+            "       mov %[ctr],#8               \n\t"
+            "ilop%=:                            \n\t"
+            "       lsls %[dat], #1             \n\t"
+            "       str %[maskhi], [%[set]]     \n\t"
 #if (w1&1)
-			ws2812_DEL1
+            ws2812_DEL1
 #endif
 #if (w1&2)
-			ws2812_DEL2
+            ws2812_DEL2
 #endif
 #if (w1&4)
-			ws2812_DEL4
+            ws2812_DEL4
 #endif
 #if (w1&8)
-			ws2812_DEL8
+            ws2812_DEL8
 #endif
 #if (w1&16)
-			ws2812_DEL16
+            ws2812_DEL16
 #endif
-			"		bcs one%=					\n\t"
-			"		str %[masklo], [%[clr]]		\n\t"
-			"one%=:								\n\t"
+            "       bcs one%=                   \n\t"
+            "       str %[masklo], [%[clr]]     \n\t"
+            "one%=:                             \n\t"
 #if (w2&1)
-			ws2812_DEL1
+            ws2812_DEL1
 #endif
 #if (w2&2)
-			ws2812_DEL2
+            ws2812_DEL2
 #endif
 #if (w2&4)
-			ws2812_DEL4
+            ws2812_DEL4
 #endif
 #if (w2&8)
-			ws2812_DEL8
+            ws2812_DEL8
 #endif
 #if (w2&16)
-			ws2812_DEL16
+            ws2812_DEL16
 #endif
-			"		subs %[ctr], #1				\n\t"
-			"		str %[masklo], [%[clr]]		\n\t"
-			"		beq	end%=					\n\t"
+            "       subs %[ctr], #1             \n\t"
+            "       str %[masklo], [%[clr]]     \n\t"
+            "       beq end%=                   \n\t"
 #if (w3&1)
-			ws2812_DEL1
+            ws2812_DEL1
 #endif
 #if (w3&2)
-			ws2812_DEL2
+            ws2812_DEL2
 #endif
 #if (w3&4)
-			ws2812_DEL4
+            ws2812_DEL4
 #endif
 #if (w3&8)
-			ws2812_DEL8
+            ws2812_DEL8
 #endif
 #if (w3&16)
-			ws2812_DEL16
+            ws2812_DEL16
 #endif
 
-			"		b 	ilop%=					\n\t"
-			"end%=:								\n\t"
-			"		cpsie i						\n\t" // re-enable interrupts
-			:	[ctr] "+r" (i)
-			:	[dat] "r" (curbyte), [set] "r" (set), [clr] "r" (clr), [masklo] "r" (masklo), [maskhi] "r" (maskhi)
-			);
-	}
+            "       b   ilop%=                  \n\t"
+            "end%=:                             \n\t"
+            "       cpsie i                     \n\t" // re-enable interrupts
+            :   [ctr] "+r" (i)
+            :   [dat] "r" (curbyte), [set] "r" (set), [clr] "r" (clr), [masklo] "r" (masklo), [maskhi] "r" (maskhi)
+            );
+    }
 }
 
