@@ -1,21 +1,37 @@
 //This file is included into native.c
 #include "libstormarray.h"
-extern const uint8_t arr_sizemap[];
-extern const uint8_t arr_shiftmap[];
+extern const uint8_t arr_sizemap[]; //from libstormarray.c
+extern const uint8_t arr_shiftmap[]; //from libstormarray.c
+
+// This is copied from libstorm.c
+#define MAXPINSPEC 14
+static const uint16_t pinspec_map [] =
+{
+    0x0109, //D0 = PB09
+    0x010A, //D1 = PB10
+    0x0010, //D2 = PA16
+    0x000C, //D3 = PA12
+    0x0209, //D4 = PC09
+    0x000A, //D5 = PA10
+    0x000B, //D6 = PA11
+    0x0013, //D7 = PA19
+    0x000D, //D8 = PA13
+    0x010B, //D9 = PB11
+    0x010C, //D10 = PB12
+    0x010F, //D11 = PB15
+    0x010E, //D12 = PB14
+    0x010D, //D13 = PB13
+};
 
 #define NEOPIXEL_SYMBOLS \
     { LSTRKEY( "neopixel"), LFUNCVAL ( neopixel ) },
 
-uint32_t volatile *gpers = 0x400E1000 + 0x004;
-uint32_t volatile *oders = 0x400E1000 + 0x044;
-uint32_t volatile *ovrs = 0x400E1000 + 0x054;
-
-void ws2812_sendarray(uint8_t *data,int datlen);
+void ws2812_sendarray(uint8_t *data, int datlen, uint32_t maskhi, uint32_t masklo, volatile uint32_t *set, volatile uint32_t *clr);
 
 static int neopixel( lua_State *L )
 {
-    int idx;
     uint16_t count;
+	int pinspec;
     storm_array_t *arr = lua_touserdata(L, 1);
     if (!arr)
     {
@@ -28,12 +44,30 @@ static int neopixel( lua_State *L )
 
     count = arr->len >> arr_shiftmap[arr->type];
 
-	*gpers = (1 << 16); // enable D2
-	*oders = (1 << 16); // set D2 to output
+    pinspec = luaL_checkint( L, 2 );
+    if (pinspec < 0 || pinspec > MAXPINSPEC)
+	{
+      return luaL_error( L, "invalid IO pin");
+	}
 
-	asm volatile ("CPSID I"); // disable interrupts
-	ws2812_sendarray((uint8_t*)ARR_START(arr), count);
-	asm volatile ("CPSIE I"); // re-enable interrupts
+	uint32_t port_offset = pinspec_map[pinspec] & 0xff00;
+	uint32_t pin_offset = pinspec_map[pinspec] & 0x00ff;
+
+	uint32_t volatile *port_gpio_enable = (uint32_t *)(0x400E1000 + port_offset + 0x004);
+	uint32_t volatile *port_output_enable = (uint32_t *)(0x400E1000 + port_offset + 0x044);
+	uint32_t volatile *port_set = (uint32_t *)(0x400E1000 + port_offset + 0x054);
+	uint32_t volatile *port_clr = (uint32_t *)(0x400E1000 + port_offset + 0x058);
+
+	*port_gpio_enable = (1 << pin_offset); // enable D2
+	*port_output_enable = (1 << pin_offset); // set D2 to output
+
+	ws2812_sendarray((uint8_t*)ARR_START(arr),
+					 count,
+					 (1 << pin_offset),
+					 (1 << pin_offset),
+					 port_set,
+					 port_clr
+		);
 
 	return 0;
 }
@@ -85,19 +119,16 @@ static int neopixel( lua_State *L )
 #define ws2812_DEL16 ws2812_DEL8 ws2812_DEL8
 
 
-void ws2812_sendarray(uint8_t *data,int datlen)
+void ws2812_sendarray(uint8_t *data,int datlen, uint32_t maskhi, uint32_t masklo, volatile uint32_t *set, volatile uint32_t *clr)
 {
-	uint32_t maskhi = ws2812_mask_set;
-	uint32_t masklo = ws2812_mask_clr;
-	volatile uint32_t *set = ws2812_port_set;
-	volatile uint32_t *clr = ws2812_port_clr;
-	uint32_t i;
+	uint32_t i = 0; // set value to avoid warning
 	uint32_t curbyte;
 
 	while (datlen--) {
 		curbyte=*data++;
 
 	asm volatile(
+			"		cpsid i						\n\t" // disable interrupts
 			"		lsl %[dat],#24				\n\t"
 			"		mov %[ctr],#8				\n\t"
 			"ilop%=:							\n\t"
@@ -157,6 +188,7 @@ void ws2812_sendarray(uint8_t *data,int datlen)
 
 			"		b 	ilop%=					\n\t"
 			"end%=:								\n\t"
+			"		cpsie i						\n\t" // re-enable interrupts
 			:	[ctr] "+r" (i)
 			:	[dat] "r" (curbyte), [set] "r" (set), [clr] "r" (clr), [masklo] "r" (masklo), [maskhi] "r" (maskhi)
 			);
