@@ -42,7 +42,7 @@ static int neopixel( lua_State *L )
   Based on code from:
   https://github.com/cpldcpu/light_ws2812/blob/master/light_ws2812_ARM/light_ws2812_cortex.c
 
-  Modified because the original code appears not use ARM assembly correctly
+  Modified because the original code uses a different version of ARM
   (among other issues, it creates an infinite loop)
 ******************************/
 
@@ -136,9 +136,8 @@ void ws2812_sendarray(uint8_t *data,int datlen)
 #if (w2&16)
 			ws2812_DEL16
 #endif
-			"		sub %[ctr], #1				\n\t"
+			"		subs %[ctr], #1				\n\t"
 			"		str %[masklo], [%[clr]]		\n\t"
-			"       cmp %[ctr], #0              \n\t"
 			"		beq	end%=					\n\t"
 #if (w3&1)
 			ws2812_DEL1
