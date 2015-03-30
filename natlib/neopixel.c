@@ -58,8 +58,8 @@ static int neopixel( lua_State *L )
     uint32_t volatile *port_set = (uint32_t *)(0x400E1000 + port_offset + 0x054);
     uint32_t volatile *port_clr = (uint32_t *)(0x400E1000 + port_offset + 0x058);
 
-    *port_gpio_enable = (1 << pin_offset); // enable D2
-    *port_output_enable = (1 << pin_offset); // set D2 to output
+    *port_gpio_enable = (1 << pin_offset); // enable the pin
+    *port_output_enable = (1 << pin_offset); // set the pin as on output
 
     ws2812_sendarray((uint8_t*)ARR_START(arr),
                      count,
@@ -79,13 +79,6 @@ static int neopixel( lua_State *L )
   Modified because the original code uses a different version of ARM
   (among other issues, it creates an infinite loop)
 ******************************/
-
-
-#define ws2812_port_set ((uint32_t*)(0x400E1000 + 0x054))   // Address of the data port register to set the pin
-#define ws2812_port_clr ((uint32_t*)(0x400E1000 + 0x058))   // Address of the data port register to clear the pin
-
-#define ws2812_mask_set  (1<<16)        // Bitmask to set the data out pin
-#define ws2812_mask_clr  (1<<16)        // Bitmask to clear the data out pin
 
 #define ws2812_cpuclk 48000000
 
