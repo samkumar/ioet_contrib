@@ -14,7 +14,9 @@ BEARCAST.init()
 
 Then user can call:
 
+```
 BEARCAST.postToClosestDisplay(msg)
+```
 
 msg: is a lua string to be posted underthe "Message" section of nearest BearCast display. 
 
@@ -39,6 +41,7 @@ cord.enter_loop()
 
 EXTRA: RESTFul API
 
+```
 POST:
 http://shell.storm.pm:7789/cast - for casting data
 http://shell.storm.pm:7789/heartbeat - for visitor tracking
@@ -51,6 +54,7 @@ e.g.
 POST http://shell.storm.pm:7789/cast
 Content-Type: application/json
 {"data":"hello", "scan":["FE80::212:6D02:0:310B"]}
+```
 
 Finally if you need to take a further look into our project, please refer to the presentation slides:
 
