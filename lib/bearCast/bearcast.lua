@@ -64,11 +64,13 @@ BEARCAST.postToClosestDisplay = function(msg)
 	print("post")
 	local closestIp = BEARCAST.getClosest()
 	print('after closest')
-	local message = string.format('{"data": "%s", "scan": ["%s"]}', msg, closestIp) 	
-	print('message', message)
-	for ip, time in pairs(BEARCAST.agentmapping) do
-		SVCD.write(ip, BEARCAST.service_id, BEARCAST.attr_id, message, 300)
+	if (closestIp == nil) then
+		print("No display found")
+		return
 	end
+	local message = string.format('{"data":"%s","scan":["%s"],"req_type":"cast"}', msg, closestIp) 	
+	print('message', message)
+	SVCD.write(closestIp, BEARCAST.service_id, BEARCAST.attr_id, message, 300)
 	print("end post")
 end
 
