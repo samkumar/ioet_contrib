@@ -2,11 +2,15 @@ BEARCAST Storm Library
 
 This is bearcast library, to use the library you should call
 
+```
 SVCD.init()
+```
 
 before calling
 
+```
 BEARCAST.init()
+```
 
 Then user can call:
 
@@ -16,6 +20,7 @@ msg: is a lua string to be posted underthe "Message" section of nearest BearCast
 
 Example: A Beeper that beeps as soon as possible
 
+```
 require "storm"
 require "cord"
 require "bearcast"
@@ -30,6 +35,7 @@ cord.new(function()
 end)
 
 cord.enter_loop()
+```
 
 EXTRA: RESTFul API
 
