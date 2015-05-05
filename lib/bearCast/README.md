@@ -22,7 +22,7 @@ BEARCAST.postToClosestDisplay(msg)
 
 msg: is a lua string to be posted underthe "Message" section of nearest BearCast display. 
 
-*Example: A Beeper that beeps as soon as possible*
+**Example: A Beeper that beeps as soon as possible**
 
 ```
 require "storm"
@@ -47,7 +47,8 @@ cord.enter_loop()
 
 ##Library API:##
 
-*BEARCAST.init  = function(node_id, verbose)*
+**BEARCAST.init  = function(node_id, verbose)**
+
 Initialize BearCast display library, need SVCD to be init before this. 
 
 ```
@@ -55,13 +56,15 @@ node_id: a string to indicate the name of the node, if nil, it will be the node'
 verbose: a boolean indicating if the library should output extra debug information
 ```
 
-*BEARCAST.postToClosestDisplay = function(msg)*
+**BEARCAST.postToClosestDisplay = function(msg)**
+
 Post to the nearest display's message section. 
 ```
 msg: the msg to be posted to the message section of the bearCast display
 ```
 
-*BEARCAST.sendDeviceData = function(datatype, data, template)*
+**BEARCAST.sendDeviceData = function(datatype, data, template)**
+
 Send device data to the device specific section on the bearCast display
 ```
 Data Type: A list of the types of each data point, must match the template requirement in string format 
