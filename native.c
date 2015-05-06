@@ -27,6 +27,14 @@
 #include "natlib/util.c"
 #include "natlib/svcd.c"
 #include "natlib/analog/analog.c"
+#include "natlib/togglepin.c"
+
+#include "natlib/reliableNetworkQueue/rnqClient.c"
+
+#include "natlib/chair/chaircontrol.c"
+#include "natlib/chair/blchair.c"
+#include "natlib/chair/flash.c"
+#include "natlib/chair/receiver.c"
 
 
 ////////////////// BEGIN FUNCTIONS /////////////////////////////
@@ -181,7 +189,13 @@ const LUA_REG_TYPE contrib_native_map[] =
     { LSTRKEY( "makecounter"), LFUNCVAL ( contrib_makecounter ) },
 
     SVCD_SYMBOLS
-    ADCIFE_SYMBOLS
+    //ADCIFE_SYMBOLS
+    RNQC_SYMBOLS
+    CHAIRCONTROL_SYMBOLS
+    I2CCHAIR_SYMBOLS
+    BLCHAIR_SYMBOLS
+    FLASH_SYMBOLS
+    RECEIVER_SYMBOLS
 
     /* Constants for the Temp sensor. */
     // -- Register address --
