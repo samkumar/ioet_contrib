@@ -1,8 +1,13 @@
-#include "rnqClient.h"
+#include "rnq.h"
 
 static const LUA_REG_TYPE rnqclient_meta_map[] = {
     { LSTRKEY("sendMessage"), LFUNCVAL("rnqclient_sendMessage") },
     { LSTRKEY("close"), LFUNCVAL("rnqclient_close") },
+    { LNILKEY, LNILVAL },
+};
+
+static const LUA_REG_TYPE rnqserver_meta_map[] = {
+    { LSTRKEY("close"), LFUNCVAL("rnqserver_close") },
     { LNILKEY, LNILVAL },
 };
 
@@ -392,6 +397,129 @@ int rnqclient_transaction_handler(lua_State* L) {
 }
 
 int rnqclient_close(lua_State* L) {
+    lua_pushlightfunction(L, libstorm_net_close);
+    lua_pushstring(L, "socket");
+    lua_gettable(L, 1);
+    lua_call(L, 1, 0);
+    return 0;
+}
+
+// Expects self and responseGenerator as upvalues
+int rnqserver_receipt_handler(lua_State* L) {
+    lua_pushlightfunction(L, libmsgpack_mp_unpack);
+    lua_pushvalue(L, 1); // payload
+    lua_call(L, 1, 1);
+    int message_index = lua_gettop(L);
+
+    lua_pushstring(L, "_id");
+    lua_gettable(L, message_index);
+    int id = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_pushstring(L, "currIDs");
+    lua_gettable(L, lua_upvalueindex(1)); // self
+    int currIDs_index = lua_gettop(L);
+
+    lua_pushvalue(L, 2); // ip
+    lua_gettable(L, currIDs_index);
+    if (lua_isnil(L, -1)) {
+	lua_pop(L, 1);
+	lua_newtable(L);
+	lua_pushvalue(L, 2);
+	lua_pushvalue(L, -2);
+	lua_settable(L, currIDs_index);
+    }
+    // now self.currIDs[ip] is at the top of the stack
+    int currIDs_ip_index = lua_gettop(L);
+
+    lua_pushvalue(L, 3); // port
+    lua_gettable(L, currIDs_ip_index);
+    if (lua_isnil(L, -1)) {
+	lua_pop(L, 1);
+	lua_newtable(L);
+	lua_pushvalue(L, 3);
+	lua_pushvalue(L, -2);
+	lua_settable(L, currIDs_ip_index);
+    }
+    // now self.currIDs[ip][port] is at the top of the stack
+    int currIDs_ip_port_index = lua_gettop(L);
+
+    lua_pushstring(L, "id");
+    lua_gettable(L, currIDs_ip_port_index);
+    int id_table = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    int toReply_index;
+    if (id_table != id) {
+	lua_pushvalue(L, lua_upvalueindex(2)); // responseGenerator
+	lua_pushvalue(L, message_index);
+	lua_pushvalue(L, 2); // ip
+	lua_pushvalue(L, 3); // port
+	lua_call(L, 3, 1);
+	// now response is at the top of the stack
+	lua_pushstring(L, "_id");
+	lua_pushnumber(L, id);
+	lua_settable(L, -3);
+	// now response is at the top of the stack
+	lua_pushlightfunction(L, libmsgpack_mp_pack);
+	lua_pushvalue(L, -2); // response
+	lua_call(L, 1, 1);
+	toReply_index = lua_gettop(L);
+
+	lua_pushstring(L, "id");
+	lua_pushnumber(L, id);
+	lua_settable(L, currIDs_ip_port_index);
+
+	lua_pushstring(L, "reply");
+	lua_pushvalue(L, toReply_index);
+	lua_settable(L, currIDs_ip_port_index);
+    } else {
+	lua_pushstring(L, "reply");
+	lua_gettable(L, currIDs_ip_port_index);
+	toReply_index = lua_gettop(L);
+    }
+
+    lua_pushlightfunction(L, libstorm_net_sendto);
+    lua_pushstring(L, "socket");
+    lua_gettable(L, lua_upvalueindex(1)); // self.socket
+    lua_pushvalue(L, toReply_index);
+    lua_pushvalue(L, 2); // ip
+    lua_pushvalue(L, 3); // port
+    lua_call(L, 4, 0);
+
+    return 0;
+}
+
+int rnqserver_new(lua_State* L) {
+    if (lua_gettop(L) == 1 || lua_isnil(L, 2)) {
+	lua_pushlightfunction(L, empty);
+    } else {
+	lua_pushvalue(L, 2);
+    }
+    int responseGenerator_index = lua_gettop(L);
+    lua_newtable(L);
+    int self_index = lua_gettop(L);
+    lua_pushrotable(L, (void*) rnqserver_meta_map);
+    lua_setmetatable(L, -2);
+
+    lua_pushstring(L, "currIDs");
+    lua_newtable(L);
+    lua_settable(L, self_index);
+
+    lua_pushstring(L, "socket");
+    lua_pushlightfunction(L, libstorm_net_udpsocket);
+    lua_pushvalue(L, 1); // port
+    lua_pushvalue(L, self_index);
+    lua_pushvalue(L, responseGenerator_index);
+    lua_pushcclosure(L, rnqserver_receipt_handler, 2);
+    lua_call(L, 2, 1);
+    lua_settable(L, self_index);
+
+    lua_pushvalue(L, self_index);
+    return 1;
+}
+
+int rnqserver_close(lua_State* L) {
     lua_pushlightfunction(L, libstorm_net_close);
     lua_pushstring(L, "socket");
     lua_gettable(L, 1);

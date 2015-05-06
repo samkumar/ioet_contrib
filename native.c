@@ -27,6 +27,9 @@
 #include "natlib/util.c"
 #include "natlib/svcd.c"
 #include "natlib/analog/analog.c"
+#include "natlib/togglepin.c"
+
+#include "natlib/reliableNetworkQueue/rnq.c"
 
 
 ////////////////// BEGIN FUNCTIONS /////////////////////////////
