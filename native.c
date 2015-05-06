@@ -27,9 +27,9 @@
 #include "natlib/util.c"
 #include "natlib/svcd.c"
 #include "natlib/analog/analog.c"
-#include "natlib/togglepin.c"
+//#include "natlib/togglepin.c"
 
-#include "natlib/reliableNetworkQueue/rnqClient.c"
+#include "natlib/reliableNetworkQueue/rnq.c"
 
 #include "natlib/chair/chaircontrol.c"
 #include "natlib/chair/blchair.c"
