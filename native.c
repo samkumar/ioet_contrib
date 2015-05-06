@@ -28,6 +28,8 @@
 #include "natlib/svcd.c"
 #include "natlib/analog/analog.c"
 
+#include "natlib/reliableNetworkQueue/rnq.c"
+
 
 ////////////////// BEGIN FUNCTIONS /////////////////////////////
 
