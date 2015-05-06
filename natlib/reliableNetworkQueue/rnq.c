@@ -1,16 +1,5 @@
 #include "rnq.h"
 
-static const LUA_REG_TYPE rnqclient_meta_map[] = {
-    { LSTRKEY("sendMessage"), LFUNCVAL("rnqclient_sendMessage") },
-    { LSTRKEY("close"), LFUNCVAL("rnqclient_close") },
-    { LNILKEY, LNILVAL },
-};
-
-static const LUA_REG_TYPE rnqserver_meta_map[] = {
-    { LSTRKEY("close"), LFUNCVAL("rnqserver_close") },
-    { LNILKEY, LNILVAL },
-};
-
 // Not a lua function; meant to be invoked directly
 int random(lua_State* L) {
     lua_pushlightfunction(L, libstorm_os_now);
@@ -67,9 +56,9 @@ int nqclient_receipt_handler(lua_State* L) {
     return 0;
 }
 
-/* NQClient:new(port) */
+/* RNQClient:new(port) */
 int rnqclient_new(lua_State* L) {
-    uint32_t port = luaL_checkinteger(L, 1);
+    uint32_t port = luaL_checkinteger(L, 2);
     lua_newtable(L); // self
     int self_index = lua_gettop(L);
     lua_pushrotable(L, (void*) rnqclient_meta_map);
@@ -129,7 +118,7 @@ int rnqclient_new(lua_State* L) {
 
 int rnqclient_processNextFromQueue(lua_State* L);
 
-// NQClient:sendMessage(message, address, port, timesToTry, timeBetweenTries, eachTry, callback)
+// RNQClient:sendMessage(message, address, port, timesToTry, timeBetweenTries, eachTry, callback)
 int rnqclient_sendMessage(lua_State* L) {
     lua_newtable(L);
     int entry_index = lua_gettop(L);
@@ -396,6 +385,7 @@ int rnqclient_transaction_handler(lua_State* L) {
     return 0;
 }
 
+// RNQClient:close()
 int rnqclient_close(lua_State* L) {
     lua_pushlightfunction(L, libstorm_net_close);
     lua_pushstring(L, "socket");
@@ -490,11 +480,12 @@ int rnqserver_receipt_handler(lua_State* L) {
     return 0;
 }
 
+// RNQServer:new(port)
 int rnqserver_new(lua_State* L) {
-    if (lua_gettop(L) == 1 || lua_isnil(L, 2)) {
+    if (lua_gettop(L) == 2 || lua_isnil(L, 3)) {
 	lua_pushlightfunction(L, empty);
     } else {
-	lua_pushvalue(L, 2);
+	lua_pushvalue(L, 3);
     }
     int responseGenerator_index = lua_gettop(L);
     lua_newtable(L);
@@ -508,7 +499,7 @@ int rnqserver_new(lua_State* L) {
 
     lua_pushstring(L, "socket");
     lua_pushlightfunction(L, libstorm_net_udpsocket);
-    lua_pushvalue(L, 1); // port
+    lua_pushvalue(L, 2); // port
     lua_pushvalue(L, self_index);
     lua_pushvalue(L, responseGenerator_index);
     lua_pushcclosure(L, rnqserver_receipt_handler, 2);
@@ -519,6 +510,7 @@ int rnqserver_new(lua_State* L) {
     return 1;
 }
 
+// RNQServer:close()
 int rnqserver_close(lua_State* L) {
     lua_pushlightfunction(L, libstorm_net_close);
     lua_pushstring(L, "socket");
