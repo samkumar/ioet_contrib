@@ -5,9 +5,21 @@ int rnqclient_close(lua_State* L);
 int rnqserver_new(lua_State* L);
 int rnqserver_close(lua_State* L);
 
-#define RNQC_SYMBOLS \
-    { LSTRKEY( "NQClient_new" ), LFUNCVAL( rnqclient_new ) }, \
-    { LSTRKEY( "NQClient_sendMessage" ), LFUNCVAL( rnqclient_sendMessage ) }, \
-    { LSTRKEY( "NQClient_close" ), LFUNCVAL( rnqclient_close ) }, \
-    { LSTRKEY( "NQServer_new" ), LFUNCVAL( rnqserver_new ) }, \
-    { LSTRKEY( "NQServer_close" ), LFUNCVAL( rnqserver_close ) },
+static const LUA_REG_TYPE rnqclient_meta_map[] = {
+    { LSTRKEY("new"), LFUNCVAL(rnqclient_new) },
+    { LSTRKEY("sendMessage"), LFUNCVAL(rnqclient_sendMessage) },
+    { LSTRKEY("close"), LFUNCVAL(rnqclient_close) },
+    { LSTRKEY("__index"), LROVAL(rnqclient_meta_map) }, 
+    { LNILKEY, LNILVAL },
+};
+
+static const LUA_REG_TYPE rnqserver_meta_map[] = {
+    { LSTRKEY("new"), LFUNCVAL(rnqserver_new) },
+    { LSTRKEY("close"), LFUNCVAL(rnqserver_close) },
+    { LSTRKEY("__index"), LROVAL(rnqserver_meta_map) },
+    { LNILKEY, LNILVAL },
+};
+
+#define RNQ_SYMBOLS \
+    { LSTRKEY( "RNQClient" ), LROVAL(rnqclient_meta_map) }, \
+    { LSTRKEY( "RNQServer" ), LROVAL(rnqserver_meta_map) },
