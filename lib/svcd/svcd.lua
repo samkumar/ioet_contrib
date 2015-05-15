@@ -162,7 +162,7 @@ SVCD.ndispatch = function(pay, srcip, srcport)
     local msg = storm.array.fromstr(pay)
     local ivkid = msg:get_as(storm.array.UINT16, 0)
     if SVCD.oursubs[ivkid] ~= nil then
-        SVCD.oursubs[ivkid](string.sub(pay,3))
+        SVCD.oursubs[ivkid][1](string.sub(pay,3), SVCD.oursubs[ivkid][2], SVCD.oursubs[ivkid][3], SVCD.oursubs[ivkid][4])
     end
 end
 
@@ -195,7 +195,7 @@ SVCD.subscribe = function(targetip, svcid, attrid, on_notify)
     if SVCD.ivkid > 65535 then
         SVCD.ivkid = 0
     end
-    SVCD.oursubs[ivkid] = on_notify
+    SVCD.oursubs[ivkid] = {on_notify, targetip, svcid, attrid}
     msg:set(1, 1)
     msg:set_as(storm.array.UINT16, 1, svcid)
     msg:set_as(storm.array.UINT16, 3, attrid)

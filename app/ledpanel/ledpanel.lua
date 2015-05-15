@@ -79,9 +79,6 @@ SVCD.init("ledpanel", function()
         end
     end)
 
-    storm.os.invokeLater(500*storm.os.MILLISECOND, function()
-        storm.os.setpowerlock(0)
-    end)
 end)
 
 
