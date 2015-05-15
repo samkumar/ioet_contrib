@@ -9,6 +9,8 @@ storm.io.set(0, storm.io.D6)
 -- start a coroutine that provides a REPL
 sh.start()
 
+plugstate = 0
+
 MyDeviceName = "PlugStrip"
 
 cord.new(function()
@@ -49,11 +51,17 @@ cord.new(function()
     -- State attribute
     SVCD.add_attribute(0x300d, 0x4019, function(pay, srcip, srcport)
         local state = string.byte(pay)
-        if state == 0 then
+        if state == 0 or pay == 0 then
+            plugstate = 0
             storm.io.set(0, storm.io.D6)
         else
+            plugstate = 1
             storm.io.set(1, storm.io.D6)
         end
+    end)
+
+    storm.os.invokePeriodically(storm.os.SECOND, function()
+        SVCD.notify(0x300d, 0x4019, plugstate)
     end)
 end)
 
