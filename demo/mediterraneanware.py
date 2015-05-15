@@ -108,9 +108,10 @@ class Middleware(driver.SmapDriver):
         path = str(upd.pop('Path'))
         actuator = upd.pop('ACTUATOR') if 'ACTUATOR' in upd else ''
         obj = update(obj, upd)
+        print path, self.addedTimeseries
         if path not in self.addedTimeseries:
-            print 'GETTING MD for', path
             self.addedTimeseries.add(path)
+            print 'GETTING MD for', path
             svcid, desc = self.getDescription(attrid)
             print desc
             ts = self.add_timeseries(path, desc['format'][0][1], data_type='double')
@@ -155,7 +156,7 @@ class FireStormActuator(actuate.SmapActuator):
         self.attrID = int(opts.get('attrID'), 16)
         self.laststate = 0
         self.sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        self.sock.bind((UDP_IP, 2526))
+        self.sock.bind((UDP_IP, 0))
         actuate.SmapActuator.__init__(self, opts.get('archiver'))
         self.subscribe(opts.get('subscribe'))
         self.state = 0
@@ -163,9 +164,12 @@ class FireStormActuator(actuate.SmapActuator):
 
     def write(self, data):
         print self.svcID, self.attrID, self.ivk_id, data
-        svcWrite = msgpack.packb([self.svcID, self.attrID, self.ivk_id, data])
-        self.ivk_id = (self.ivk_id + 1) & 65535
-        self.sock.sendto(svcWrite, (self.stormIP, self.port))
+        try:
+            svcWrite = msgpack.packb([self.svcID, self.attrID, self.ivk_id, data])
+            self.ivk_id = (self.ivk_id + 1) & 65535
+            self.sock.sendto(svcWrite, (self.stormIP, self.port))
+        except Exception as e:
+            print e
         
 class OnOffActuator(FireStormActuator, actuate.BinaryActuator):
     def __init__(self, **opts):
@@ -176,5 +180,7 @@ class OnOffActuator(FireStormActuator, actuate.BinaryActuator):
         return self.laststate
 
     def set_state(self, request, state):
+        print 'ONOFF',state
         self.laststate = state
         self.write(state)
+        return state
