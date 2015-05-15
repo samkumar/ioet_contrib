@@ -80,5 +80,23 @@
                 }
             }
         }
+    },
+    "3103": {
+        "INHERIT": ["DEFAULT","GENERAL"],
+        "Metadata": {
+            "HVACZone": "Invention Lab",
+            "Name": "Smart PlugStrip",
+            "Room": "410 Central",
+            "Floor": "1"
+        },
+        "ATTRS": {
+            "0x4019": {
+                "Path": "/gabe/plugstrip1/on",
+                "ACTUATOR": "binary",
+                "Metadata": {
+                    "Type": "Command"
+                }
+            }
+        }
     }
 }
