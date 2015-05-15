@@ -109,8 +109,10 @@ class Middleware(driver.SmapDriver):
         actuator = upd.pop('ACTUATOR') if 'ACTUATOR' in upd else ''
         obj = update(obj, upd)
         if path not in self.addedTimeseries:
+            print 'GETTING MD for', path
             self.addedTimeseries.add(path)
             svcid, desc = self.getDescription(attrid)
+            print desc
             ts = self.add_timeseries(path, desc['format'][0][1], data_type='double')
             if actuator == 'binary':
                 ts.add_actuator(OnOffActuator(stormIP=PREFIX+nodeid, svcID=svcid, attrID=attrid, archiver=self.archiver))
