@@ -6,6 +6,8 @@ sh = require "stormsh"
 storm.io.set_mode(storm.io.OUTPUT, storm.io.D2, storm.io.D3)
 storm.io.set(0, storm.io.D2, storm.io.D3)
 
+state = 0
+
 -- start a coroutine that provides a REPL
 sh.start()
 
@@ -49,16 +51,23 @@ cord.new(function()
     -- Fan speed attribute
     SVCD.add_attribute(0x3009, 0x4012, function(pay, srcip, srcport)
         local speed = string.byte(pay)
-        if speed == 0 then
+        if speed == 0 or pay == 0 then
             storm.io.set(0, storm.io.D2)
             storm.io.set(0, storm.io.D3)
-        elseif speed == 1 then
+            state = 0
+        elseif speed == 1 or pay == 1 then
             storm.io.set(1, storm.io.D2)
             storm.io.set(0, storm.io.D3)
-        elseif speed == 2 then
+            state = 1
+        elseif speed == 2 or pay == 2 then
             storm.io.set(0, storm.io.D2)
             storm.io.set(1, storm.io.D3)
+            state = 2
         end
+    end)
+
+    storm.os.invokePeriodically(storm.os.SECOND, function()
+        SVCD.notify(0x3009, 0x4012, state)
     end)
 end)
 
