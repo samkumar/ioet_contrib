@@ -191,17 +191,25 @@ end
 SVCD.subscribe = function(targetip, svcid, attrid, on_notify)
     local msg = storm.array.create(7,storm.array.UINT8)
     local ivkid = SVCD.ivkid
+    local useivkid = ivkid
+    for k,v in pairs(SVCD.oursubs) do
+        if v[2] == targetip and v[3] == svcid and v[4] == attrid then
+            useivkid = k
+        end
+    end
+
     SVCD.ivkid = SVCD.ivkid + 1
     if SVCD.ivkid > 65535 then
         SVCD.ivkid = 0
     end
-    SVCD.oursubs[ivkid] = {on_notify, targetip, svcid, attrid}
+
+    SVCD.oursubs[useivkid] = {on_notify, targetip, svcid, attrid}
     msg:set(1, 1)
     msg:set_as(storm.array.UINT16, 1, svcid)
     msg:set_as(storm.array.UINT16, 3, attrid)
-    msg:set_as(storm.array.UINT16, 5, ivkid)
+    msg:set_as(storm.array.UINT16, 5, useivkid)
     storm.net.sendto(SVCD.ncsock, msg:as_str(), targetip, 2530)
-    return ivkid
+    return useivkid
 end
 
 SVCD.unsubscribe = function(targetip, svcid, attrid, ivkid)
