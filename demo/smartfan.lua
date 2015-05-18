@@ -49,20 +49,16 @@ cord.new(function()
     -- This is what makes us a smart fan
     SVCD.add_service(0x3009)
     -- Fan speed attribute
-    SVCD.add_attribute(0x3009, 0x4012, function(pay, srcip, srcport)
-        local speed = string.byte(pay)
-        if speed == 0 or pay == 0 then
+    SVCD.add_attribute(0x3009, 0x4012, function(payload)
+        local speed = string.byte(payload)
+        if speed == 0 then
             storm.io.set(0, storm.io.D2)
             storm.io.set(0, storm.io.D3)
             state = 0
-        elseif speed == 1 or pay == 1 then
-            storm.io.set(1, storm.io.D2)
-            storm.io.set(0, storm.io.D3)
-            state = 1
-        elseif speed == 2 or pay == 2 then
+        else
             storm.io.set(0, storm.io.D2)
             storm.io.set(1, storm.io.D3)
-            state = 2
+            state = 1
         end
     end)
 
