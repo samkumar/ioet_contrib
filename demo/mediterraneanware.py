@@ -97,19 +97,21 @@ class Middleware(driver.SmapDriver):
         Returns the path and the constructed sMAP object.
         This method is idempotent in regards to construction actuators and timeseries
         """
+        if nodeid not in self.smapManifest: return '',{}
         obj = self.smapManifest.get(nodeid,None).copy()
         if not obj:
-            return {}
+            return '',{}
         inherit = obj.pop('INHERIT') if 'INHERIT' in obj else []
         for section in inherit:
             obj = update(obj, self.smapManifest.get(section, {}))
         attrs = obj.pop('ATTRS') if 'ATTRS' in obj else {}
         upd = attrs.get(attrid, {}).copy()
+        if 'Path' not in upd: return '',{}
         path = str(upd.pop('Path'))
         actuator = upd.pop('ACTUATOR') if 'ACTUATOR' in upd else ''
         obj = update(obj, upd)
         print path, self.addedTimeseries
-        if path not in self.addedTimeseries:
+        if path and path not in self.addedTimeseries:
             self.addedTimeseries.add(path)
             print 'GETTING MD for', path
             svcid, desc = self.getDescription(attrid)
@@ -133,6 +135,7 @@ class Middleware(driver.SmapDriver):
             reading = self.decodeData(attrid, data)
             # get the smap metadata + path
             path, smapObj = self.getSmapMessage(nodeid, attrid, reading)
+            if not path: return
             print attrid, path, reading
             # add to the appropriate stream
             self.add(path, reading)
