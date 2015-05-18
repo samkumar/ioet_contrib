@@ -3,12 +3,10 @@ require "bearcast"
 sh = require "stormsh"
 
 -- LED Panel specific globals
--- We don't NEED to use the LED class, this is just showing how we
--- would use code from third parties to marginally improve our lives
-local LED = require "led"
-lr = LED:new("D4")
-lg = LED:new("D5")
-lb = LED:new("D6")
+-- red is d4, green d5, blue d6
+storm.io.set_mode(storm.io.OUTPUT, storm.io.D4, storm.io.D5, storm.io.D6)
+storm.io.set(0, storm.io.D4, storm.io.D5, storm.io.D6)
+
 
 -- start a coroutine that provides a REPL
 sh.start()
@@ -21,7 +19,7 @@ cord.new(function()
 	BEARCAST.init(MyDeviceName, true)
 
     --here you can add extra services or extra logic
-    --for example, display a mesage after a while:
+    --for example, display a message after a while:
     storm.os.invokeLater(10*storm.os.SECOND, function()
         cord.new(function()
             BEARCAST.postToClosestDisplay(MyDeviceName.." has started up")
@@ -55,16 +53,45 @@ cord.new(function()
         local ps = storm.array.fromstr(pay)
         local lednum = ps:get(1)
         local flashcount = ps:get(2)
+	cord.new(function()
+		for i=1,flashcount do
+			if lednum == 1 then
+			    storm.io.set(1, storm.io.D4)
+			end
+			if lednum == 2 then
+			    storm.io.set(1, storm.io.D5)
+			end
+			if lednum == 3 then
+			    storm.io.set(1, storm.io.D4)
+			    storm.io.set(1, storm.io.D5)
+			end
+			if lednum == 4 then
+			    storm.io.set(1, storm.io.D6)
+			end
+			if lednum == 5 then
+			    storm.io.set(1, storm.io.D4)
+			    storm.io.set(1, storm.io.D6)
+			end
+			if lednum == 6 then
+			    storm.io.set(1, storm.io.D5)
+			    storm.io.set(1, storm.io.D6)
+			end
+			if lednum == 7 then
+			    storm.io.set(1, storm.io.D4)
+			    storm.io.set(1, storm.io.D5)
+			    storm.io.set(1, storm.io.D6)
+			end	
+			cord.await(storm.os.invokeLater, 700*storm.os.MILLISECOND)
+			storm.io.set(0, storm.io.D4)
+			storm.io.set(0, storm.io.D5)
+			storm.io.set(0, storm.io.D6)
+			cord.await(storm.os.invokeLater, 700*storm.os.MILLISECOND)				
+		end
+	end)
+	
+
         print ("got a request to flash led",lednum, " x ", flashcount)
-        if lednum == 0 then
-            lr:flash(flashcount,300)
-        end
-        if lednum == 1 then
-            lg:flash(flashcount,300)
-        end
-        if lednum == 2 then
-            lb:flash(flashcount,300)
-        end
+        
     end)
     -- LED control attribute
     SVCD.add_attribute(0x3003, 0x4006, function(pay, srcip, srcport)
@@ -72,25 +99,38 @@ cord.new(function()
         local lednum = ps:get(1)
         local duration = ps:get_as(storm.array.INT16, 1)
         print ("got a request to turn on led",lednum, " for ", duration)
-        local target
-        if lednum == 0 then
-            target=lr
-        end
         if lednum == 1 then
-            target=lg
-        end
-        if lednum == 2 then
-            target=lb
-        end
+	    storm.io.set(1, storm.io.D4)
+	end
+	if lednum == 2 then
+	    storm.io.set(1, storm.io.D5)
+	end
+	if lednum == 3 then
+	    storm.io.set(1, storm.io.D4)
+	    storm.io.set(1, storm.io.D5)
+	end
+	if lednum == 4 then
+	    storm.io.set(1, storm.io.D6)
+	end
+	if lednum == 5 then
+	    storm.io.set(1, storm.io.D4)
+	    storm.io.set(1, storm.io.D6)
+	end
+	if lednum == 6 then
+	    storm.io.set(1, storm.io.D5)
+	    storm.io.set(1, storm.io.D6)
+	end
+	if lednum == 7 then
+	    storm.io.set(1, storm.io.D4)
+	    storm.io.set(1, storm.io.D5)
+	    storm.io.set(1, storm.io.D6)
+	end
         if duration > 0 then
-            target:on()
             storm.os.invokeLater(duration*storm.os.MILLISECOND, function()
-                target:off()
+              storm.io.set(0, storm.io.D4)
+	      storm.io.set(0, storm.io.D5)
+	      storm.io.set(0, storm.io.D6)    
             end)
-        elseif duration == 0 then
-            target:off()
-        else
-            target:on()
         end
     end)
 
