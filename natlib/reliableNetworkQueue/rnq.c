@@ -112,19 +112,28 @@ int rnqclient_new(lua_State* L) {
     lua_pushnumber(L, random(L));
     lua_settable(L, self_index);
 
+    // table for timer watch
+    lua_pushstring(L, "timer");
+    lua_createtable(L, 1, 0);
+    lua_settable(L, self_index);
+
     lua_pushvalue(L, self_index);
     return 1;
 }
 
 int rnqclient_processNextFromQueue(lua_State* L);
 
-// RNQClient:sendMessage(message, address, port, timesToTry, timeBetweenTries, eachTry, callback)
+// RNQClient:sendMessage(message, address, port, timesToTry, timeBetweenTries, optTable, eachTry, callback)
 int rnqclient_sendMessage(lua_State* L) {
-    lua_newtable(L);
+    if (lua_gettop(L) < 7 || lua_isnil(L, 7)) {
+        lua_newtable(L);
+    } else {
+        lua_pushvalue(L, 7);
+    }
     int entry_index = lua_gettop(L);
     int i;
 
-    for (i = 2; i < 9; i++) {
+    for (i = 2; i < 10; i++) {
         switch (i) {
         case 2:
             lua_pushstring(L, "msg");
@@ -142,13 +151,15 @@ int rnqclient_sendMessage(lua_State* L) {
             lua_pushstring(L, "period");
             break;
         case 7:
+            continue;
+        case 8:
             lua_pushstring(L, "tcallback");
             break;
-        case 8:
+        case 9:
             lua_pushstring(L, "callback");
             break;
         }
-        if (i >= 7 && lua_isnil(L, i)) {
+        if (i > 7 && lua_isnil(L, i)) {
             lua_pushlightfunction(L, empty);
         } else {
             lua_pushvalue(L, i);
@@ -217,6 +228,19 @@ int rnqclient_processNextFromQueue(lua_State* L) {
     lua_pushstring(L, "front");
     lua_pushnumber(L, front + 1);
     lua_settable(L, 1);
+    
+    printf("Client state: %d %d\n", front + 1, back);
+    if (front + 1 == back) {
+        printf("Resetting RNQ Client\n");
+        
+        lua_pushstring(L, "front");
+        lua_pushnumber(L, 1);
+        lua_settable(L, 1);
+        
+        lua_pushstring(L, "back");
+        lua_pushnumber(L, 1);
+        lua_settable(L, 1);
+    }
 
     lua_pushstring(L, "currIP");
     lua_pushstring(L, "addr");
@@ -281,7 +305,8 @@ int rnqclient_processNextFromQueue(lua_State* L) {
     }
     lua_pop(L, 1);
 
-    lua_createtable(L, 1, 0);
+    lua_pushstring(L, "timer");
+    lua_gettable(L, 1);
     int table_index = lua_gettop(L);
     lua_pushnumber(L, 1); // the index of the watch in the table
     // Now for the cord part
@@ -320,6 +345,7 @@ int rnqclient_poll_send(lua_State* L) {
         lua_pushstring(L, "currPort");
         lua_gettable(L, self_index);
         lua_call(L, 4, 0);
+        //lua_pop(L, 5);
         lua_pushvalue(L, lua_upvalueindex(2));
         lua_call(L, 0, 0);
         lua_pushnumber(L, i + 1);
