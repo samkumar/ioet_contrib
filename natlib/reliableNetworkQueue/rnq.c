@@ -123,17 +123,13 @@ int rnqclient_new(lua_State* L) {
 
 int rnqclient_processNextFromQueue(lua_State* L);
 
-// RNQClient:sendMessage(message, address, port, timesToTry, timeBetweenTries, optTable, eachTry, callback)
+// RNQClient:sendMessage(message, address, port, timesToTry, timeBetweenTries, eachTry, callback)
 int rnqclient_sendMessage(lua_State* L) {
-    if (lua_gettop(L) < 7 || lua_isnil(L, 7)) {
-        lua_newtable(L);
-    } else {
-        lua_pushvalue(L, 7);
-    }
+    lua_newtable(L);
     int entry_index = lua_gettop(L);
     int i;
 
-    for (i = 2; i < 10; i++) {
+    for (i = 2; i < 9; i++) {
         switch (i) {
         case 2:
             lua_pushstring(L, "msg");
@@ -151,15 +147,13 @@ int rnqclient_sendMessage(lua_State* L) {
             lua_pushstring(L, "period");
             break;
         case 7:
-            continue;
-        case 8:
             lua_pushstring(L, "tcallback");
             break;
-        case 9:
+        case 8:
             lua_pushstring(L, "callback");
             break;
         }
-        if (i > 7 && lua_isnil(L, i)) {
+        if (i >= 7 && lua_isnil(L, i)) {
             lua_pushlightfunction(L, empty);
         } else {
             lua_pushvalue(L, i);
