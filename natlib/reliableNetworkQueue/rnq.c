@@ -223,10 +223,7 @@ int rnqclient_processNextFromQueue(lua_State* L) {
     lua_pushnumber(L, front + 1);
     lua_settable(L, 1);
     
-    printf("Client state: %d %d\n", front + 1, back);
-    if (front + 1 == back) {
-        printf("Resetting RNQ Client\n");
-        
+    if (front + 1 == back) { // optimize for the common case
         lua_pushstring(L, "front");
         lua_pushnumber(L, 1);
         lua_settable(L, 1);
