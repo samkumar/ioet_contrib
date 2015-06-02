@@ -1,0 +1,102 @@
+{
+    "DEFAULT": {
+        "Metadata": {
+            "Building": "Invention Lab",
+            "configured": "True",
+            "Site": "d5ed4f6e-a8db-11e4-bd8a-0001c0158419"
+        },
+        "Properties": {
+            "ReadingType": "double",
+            "Timezone": "America/Los_Angeles",
+            "UnitofTime": "s"
+        }
+    },
+    "SENSOR": {
+        "Metadata": {
+            "Role": "Monitoring",
+            "System": "Monitoring",
+            "Type": "Sensor"
+        }
+    },
+    "LIGHTING": {
+        "Metadata": {
+            "Role": "Building Lighting",
+            "System": "Lighting"
+        }
+    },
+    "GENERAL": {
+        "Metadata": {
+            "System": "GeneralControl",
+            "Role": "GeneralControl"
+        }
+    },
+    "3007": {
+        "INHERIT": ["DEFAULT","SENSOR"],
+        "Metadata": {
+            "HVACZone": "Invention Lab",
+            "Name": "Gabe Firestorm Sensor",
+            "Room": "Gabe Desk",
+            "Floor": "1"
+        },
+        "ATTRS": {
+            "0x401b": {
+                "Path": "/gabe/temperature"
+            },
+            "0x401c": {
+                "Path": "/gabe/occupancy"
+            }
+        }
+    },
+    "3123": {
+        "INHERIT": ["DEFAULT","LIGHTING"],
+        "Metadata": {
+            "LightingZone": "Lighting Zone 1",
+            "Name": "Starter Shield LED",
+            "Room": "Gabe Desk",
+            "Floor": "1",
+            "Group": "Green LED"
+        },
+        "ATTRS": {
+            "0x401a": {
+                "Path": "/gabe/ledlight/on",
+                "ACTUATOR": "binary"
+            }
+        }
+    },
+    "3027": {
+        "INHERIT": ["DEFAULT","GENERAL"],
+        "Metadata": {
+            "HVACZone": "Invention Lab",
+            "Name": "Smart Fan Blue",
+            "Room": "Gabe Desk",
+            "Floor": "1"
+        },
+        "ATTRS": {
+            "0x4012": {
+                "Path": "/gabe/smartfan1/on",
+                "ACTUATOR": "binary",
+                "Metadata": {
+                    "Type": "Command"
+                }
+            }
+        }
+    },
+    "3103": {
+        "INHERIT": ["DEFAULT","GENERAL"],
+        "Metadata": {
+            "HVACZone": "Invention Lab",
+            "Name": "Smart PlugStrip",
+            "Room": "410 Central",
+            "Floor": "1"
+        },
+        "ATTRS": {
+            "0x4019": {
+                "Path": "/gabe/plugstrip1/on",
+                "ACTUATOR": "binary",
+                "Metadata": {
+                    "Type": "Command"
+                }
+            }
+        }
+    }
+}

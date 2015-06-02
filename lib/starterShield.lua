@@ -24,8 +24,8 @@ LED.pins = {["blue"]="D2",["green"]="D3",["red"]="D4",["red2"]="D5"}
 
 LED.start = function()
 -- configure LED pins for output
-   storm.io.set_mode(storm.io.OUTPUT, storm.io.D2,
-		     storm.io.D3,
+   storm.io.set_mode(storm.io.OUTPUT, storm.io.D2, 
+		     storm.io.D3, 
 		     storm.io.D4,
 		     storm.io.D5)
 end
@@ -47,9 +47,8 @@ end
 --    unspecified duration is default of 10 ms
 --    this is dull for green, but bright for read and blue
 --    assumes cord.enter_loop() is in effect to schedule filaments
-LED.flash=function(color,duration, times)
+LED.flash=function(color,duration)
    local pin = LED.pins[color] or LED.pins["red2"]
-   times = times or 1
    duration = duration or 10
    storm.io.set(1,storm.io[pin])
    storm.os.invokeLater(duration*storm.os.MILLISECOND,
@@ -64,6 +63,7 @@ end
 ----------------------------------------------
 local Buzz = {}
 
+Buzz.run = nil
 Buzz.go = function(delay)
    delay = delay or 0
    -- configure buzzer pin for output
@@ -86,7 +86,9 @@ Buzz.go = function(delay)
 end
 
 Buzz.stop = function()
+   print ("Buzz.stop")
    Buzz.run = false		-- stop Buzz.go partner
+-- configure pins to a low power state
 end
 
 ----------------------------------------------
@@ -97,7 +99,7 @@ local Button = {}
 
 Button.pins = {"D9","D10","D11"}
 
-Button.start = function()
+Button.start = function() 
    -- set buttons as inputs
    storm.io.set_mode(storm.io.INPUT,   
 		     storm.io.D9, storm.io.D10, storm.io.D11)
@@ -139,10 +141,13 @@ Button.wait = function(button)
 -- Wait on a button press
 --   suspend execution of the filament
 --   resume and return when transition occurs
+-- DEC: this doesn't quite work.  Return to it
    local pin = Button.pins[button]
-   cord.await(storm.io.watch_single,
-	      storm.io.FALLING, 
-	      storm.io[pin])
+   cord.new(function()
+	       cord.await(storm.io.watch_single,
+			  storm.io.FALLING, 
+			  storm.io[pin])
+	    end)
 end
 
 ----------------------------------------------

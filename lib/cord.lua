@@ -31,7 +31,6 @@ cord.await = function(f, ...)
     args[#args+1] = function (...)
         cord._cors[aidx].s=cord._PROMISEDONE
         cord._cors[aidx].rv={... }
-        print ("rvlen:",#cord._cors[aidx].rv)
     end
     f(unpack(args))
     return coroutine.yield()
@@ -72,7 +71,7 @@ cord.nc = function(f, ...)
     local c = cord._cors[cord._activeidx]
     f(...) -- call the head function
     while c.t ~= nil do --while there is a tail function
-        t = c.t
+        local t = c.t
         if t == -1 then
             return unpack(c.x)
         end
