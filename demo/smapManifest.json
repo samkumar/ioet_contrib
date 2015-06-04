@@ -81,21 +81,19 @@
             }
         }
     },
-    "3103": {
-        "INHERIT": ["DEFAULT","GENERAL"],
+    "3126": {
+        "INHERIT": ["DEFAULT","LIGHTING"],
         "Metadata": {
-            "HVACZone": "Invention Lab",
-            "Name": "Smart PlugStrip",
-            "Room": "410 Central",
-            "Floor": "1"
+            "LightingZone": "Lighting Zone 1",
+            "Name": "Starter Shield LED",
+            "Room": "Gabe Desk",
+            "Floor": "1",
+            "Group": "Green LED 2"
         },
         "ATTRS": {
-            "0x4019": {
-                "Path": "/gabe/plugstrip1/on",
-                "ACTUATOR": "binary",
-                "Metadata": {
-                    "Type": "Command"
-                }
+            "0x401a": {
+                "Path": "/gabe/ledlight/2/on",
+                "ACTUATOR": "binary"
             }
         }
     }

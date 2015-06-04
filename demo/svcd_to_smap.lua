@@ -2,11 +2,13 @@ require "cord"
 require "svcd"
 
 
+--sendto = "2001:470:66:3f9::2"
+sendto = "2001:470:66:761::2"
 local seen = {}
 egress = storm.net.udpsocket(1337, function() end)
 function got_data(data, srcip, service, attribute)
     print ("Got data, sending")
-    storm.net.sendto(egress, storm.mp.pack({data,string.sub(srcip,-4),attribute}), "2001:470:66:3f9::2", 9001)
+    storm.net.sendto(egress, storm.mp.pack({data,string.sub(srcip,-4),attribute}),sendto, 9001)
 end
 
 SVCD.init("border", function()
