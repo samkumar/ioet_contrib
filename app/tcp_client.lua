@@ -18,9 +18,11 @@ function connection_lost(how, socket)
         if prevcord ~= nil then
             cord.cancel(prevcord) -- connect failed, so stop this cord
         end
-        cord.await(storm.os.invokeLater, storm.os.SECOND)
         print("Attempting to connect")
-        prevcord = cord.new(function () tryconnect(socket) end)
+        prevcord = cord.new(function ()
+            cord.await(storm.os.invokeLater, storm.os.SECOND)
+            tryconnect(socket)
+        end)
     else
         storm.net.tcpclose(socket)
         print("Closed socket")
