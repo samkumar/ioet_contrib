@@ -42,6 +42,7 @@ local conn_lost_signal = do_nothing
 -- Accept incoming connection requests
 cord.new(function ()
     local clntsock
+    local cfd
     while true do
         while true do
             storm.os.setoutputhook(broadcast)
@@ -57,6 +58,9 @@ cord.new(function ()
         end
         -- At this point, clntsock is the client socket
         storm.net.tcpaddconnectionlost(clntsock, connection_lost)
+        cfd = storm.net.tcpfd(clntsock)
+        queues[cfd] = nil
+        storm.net.tcpaddconnectdone(clntsock, function () queues[cfd] = "done" end)
         cord.new(function () remote_shell(clntsock) end)
     end
 end)
@@ -65,6 +69,9 @@ local readchunksize = 100
 -- Accept commands from and send output to the remote user
 function remote_shell(csock)
     local fd = storm.net.tcpfd(csock)
+    if queues[fd] == nil then
+        cord.await(storm.net.tcpaddconnectdone, csock)
+    end
     local queue = AsyncQueue:new(function (str, cb)
         storm.net.tcpsendfull(csock, str, cb)
     end)
@@ -74,6 +81,9 @@ function remote_shell(csock)
     end
     local buf
     local chunk
+    
+    queue:enqueue("\27[34;1mstormsh> \27[0m")
+    
     while true do
         storm.os.setoutputhook(broadcast) -- before yielding
         
