@@ -13,7 +13,11 @@ storm.net.tcpbind(lstnsock, 32067)
 cord.new(function ()
     while true do
         clntsock = cord.await(storm.net.tcplistenaccept, lstnsock)
-        cord.new(function () server(clntsock) end)
+        if clntsock ~= nil then
+            cord.new(function () server(clntsock) end)
+        else
+            cord.yield()
+        end
     end
 end)
 
