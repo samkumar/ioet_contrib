@@ -5,9 +5,9 @@ function STR:send_string(sock, string)
     local data
     local err
     local strlen = string.len(string)
-    cord.await(storm.net.tcpsendfull, sock, string.format("%04d", strlen))
+    storm.net.tcpsend(sock, string.format("%04d", strlen))
     if strlen ~= 0 then
-        cord.await(storm.net.tcpsendfull, sock, string)
+        storm.net.tcpsend(sock, string)
     end
     data, err = cord.await(storm.net.tcprecvfull, sock, 2)
     return data
@@ -25,7 +25,7 @@ function STR:recv_string(sock)
     else
         data, err = cord.await(storm.net.tcprecvfull, sock, strlen)
     end
-    cord.await(storm.net.tcpsendfull, sock, "ok")
+    storm.net.tcpsend(sock, "ok")
     return data
 end
 

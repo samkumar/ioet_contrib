@@ -1,7 +1,6 @@
 require "storm"
 require "string"
 require "cord"
-AsyncQueue = require "aqueue"
 
 server_ip = "fe80::0212:6d02:0000:4021"
 
@@ -12,14 +11,10 @@ csock = storm.net.tcpactivesocket()
 storm.net.tcpbind(csock, 1024)
 
 prevcord = nil
-outqueue = nil
 function connection_lost(how, socket)
     if how ~= 0 then -- connection broken
         if prevcord ~= nil then
             cord.cancel(prevcord) -- connect failed, so stop this cord
-        end
-        if outqueue ~= nil then
-            outqueue:reset()
         end
         
         print("Attempting to connect")
@@ -46,17 +41,20 @@ function onreceiveready(clsock)
     io.write(buf)
 end
 
+local SENDBUF_MAX = 250
 function tryconnect(clsock)
     local inp
     cord.await(storm.net.tcpconnect, clsock, server_ip, 74)
     storm.net.tcpaddrecvready(clsock, onreceiveready)
-    outqueue = AsyncQueue:new(function (string, callback)
-        storm.net.tcpsendfull(clsock, string, callback)
-    end)
     print("Connected successfully.")
     while true do
         inp = cord.await(storm.os.read_stdin)
-        outqueue:enqueue(inp)
+        if storm.net.tcpoutstanding(clsock) < SENDBUF_MAX then
+            storm.net.tcpsend(clsock, inp)
+        else
+            print("{ Shell Client: Send buffer full. Line not sent. }")
+            cord.yield()
+        end
     end
     
     storm.net.tcpshutdown(clsock, storm.net.SHUT_RDWR)

@@ -1,11 +1,9 @@
 require "storm"
 require "string"
 require "cord"
-AsyncQueue = require "aqueue"
 
--- For each socket, we need a queue of messages to send
--- QUEUES maps a socket's FD to an AsyncQueue of messages
-queues = {}
+-- SENDFUNCS maps a socket's FD to a function to send data on that socket
+sendfuncs = {}
 
 -- For each socket, we create a cord, which needs to be cancelled if the connection is broken
 -- CORDS maps a socket's FD to the cord that is running its interactive session
@@ -29,12 +27,13 @@ end
 
 function connection_lost(how, sock)
     local fd = storm.net.tcpfd(sock)
-    local queue = queues[fd]
-    queues[fd] = nil
+    local c = cords[fd]
+    cords[fd] = nil
+    sendfuncs[fd] = nil
     
-    queue:reset()
+    cord.cancel(c)
     
-    conn_lost_signal() -- signal waiting threads to start
+    conn_lost_signal() -- signal waiting thread, if any, to start
 end
 
 local conn_lost_signal = do_nothing
@@ -59,30 +58,40 @@ cord.new(function ()
         -- At this point, clntsock is the client socket
         storm.net.tcpaddconnectionlost(clntsock, connection_lost)
         cfd = storm.net.tcpfd(clntsock)
-        queues[cfd] = nil
-        storm.net.tcpaddconnectdone(clntsock, function () queues[cfd] = "done" end)
-        cord.new(function () remote_shell(clntsock) end)
+        cords[cfd] = cord.new(function () remote_shell(clntsock) end)
     end
 end)
 
 local readchunksize = 100
+local SENDBUF_MAX = 250 -- Maximum number of queued bytes to send on any single socket
 -- Accept commands from and send output to the remote user
 function remote_shell(csock)
     local fd = storm.net.tcpfd(csock)
-    if queues[fd] == nil then
+    if not storm.net.tcpisestablished(csock) then
         cord.await(storm.net.tcpaddconnectdone, csock)
     end
-    local queue = AsyncQueue:new(function (str, cb)
-        storm.net.tcpsendfull(csock, str, cb)
-    end)
-    queues[fd] = queue
+    local maxedbuffer = false
     local outputhook = function (str)
-        queue:enqueue(str)
+        local outstanding = storm.net.tcpoutstanding(csock)
+        if storm.net.tcpoutstanding(csock) < SENDBUF_MAX then
+            if maxedbuffer then
+                storm.net.tcpsend(csock, "{ Shell Server: Can send data again. }\n")
+            end
+            maxedbuffer = false
+            storm.net.tcpsend(csock, str)
+        else
+            if not maxedbuffer then
+                storm.net.tcpsend(csock, "{ Shell Server: Send buffer full. Dropping characters... }\n")
+            end
+            maxedbuffer = true
+        end
     end
+    sendfuncs[fd] = outputhook
+    
     local buf
     local chunk
     
-    queue:enqueue("\27[34;1mstormsh> \27[0m")
+    storm.net.tcpsend(csock, "\27[34;1mstormsh> \27[0m")
     
     while true do
         storm.os.setoutputhook(broadcast) -- before yielding
