@@ -7,8 +7,8 @@ server_ip = "fe80::0212:6d02:0000:4021"
 -- Create active socket
 csock = storm.net.tcpactivesocket()
 
--- Bind socket to port 1024
-storm.net.tcpbind(csock, 1024)
+-- Bind socket to port
+storm.net.tcpbind(csock, 62157)
 
 prevcord = nil
 function connection_lost(how, socket)
@@ -44,7 +44,7 @@ end
 local SENDBUF_MAX = 700
 function tryconnect(clsock)
     local inp
-    cord.await(storm.net.tcpconnect, clsock, server_ip, 74)
+    cord.await(storm.net.tcpconnect, clsock, server_ip, 46510)
     storm.net.tcpaddrecvready(clsock, onreceiveready)
     print("Connected successfully.")
     while true do

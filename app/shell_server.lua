@@ -14,16 +14,16 @@ function do_nothing() end
 -- Create server socket
 lstnsock = storm.net.tcppassivesocket()
 
--- Bind socket to port 74
-storm.net.tcpbind(lstnsock, 74)
+-- Bind socket to port 46510
+storm.net.tcpbind(lstnsock, 46510)
 
 function broadcast(str)
-    for k, v in pairs(queues) do
-        if v ~= nil then
-            v:enqueue(str)
-        end
+    for k, v in pairs(sendfuncs) do
+        v(str)
     end
 end
+
+conn_lost_signal = do_nothing
 
 function connection_lost(how, sock)
     local fd = storm.net.tcpfd(sock)
@@ -33,10 +33,9 @@ function connection_lost(how, sock)
     
     cord.cancel(c)
     
+    storm.net.tcpclose(sock)
     conn_lost_signal() -- signal waiting thread, if any, to start
 end
-
-local conn_lost_signal = do_nothing
 
 -- Accept incoming connection requests
 cord.new(function ()
@@ -96,6 +95,11 @@ function remote_shell(csock)
     storm.net.tcpsend(csock, "\27[34;1mstormsh> \27[0m")
     
     while true do
+        if storm.net.tcphasrcvdfin(csock) then
+            storm.net.tcpshutdown(csock, storm.net.SHUT_RDWR)
+            cord.await(do_nothing) -- Wait until connection_lost cancels this cord
+        end
+        
         storm.os.setoutputhook(broadcast) -- before yielding
         
         -- Wait until something is in the receive buffer
