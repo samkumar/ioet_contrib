@@ -41,7 +41,7 @@ function onreceiveready(clsock)
     io.write(buf)
 end
 
-local SENDBUF_MAX = 250
+local SENDBUF_MAX = 700
 function tryconnect(clsock)
     local inp
     cord.await(storm.net.tcpconnect, clsock, server_ip, 74)

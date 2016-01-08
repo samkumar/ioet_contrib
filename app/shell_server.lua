@@ -63,7 +63,7 @@ cord.new(function ()
 end)
 
 local readchunksize = 100
-local SENDBUF_MAX = 250 -- Maximum number of queued bytes to send on any single socket
+local SENDBUF_MAX = 700 -- Maximum number of queued bytes to send on any single socket
 -- Accept commands from and send output to the remote user
 function remote_shell(csock)
     local fd = storm.net.tcpfd(csock)
@@ -71,13 +71,15 @@ function remote_shell(csock)
         cord.await(storm.net.tcpaddconnectdone, csock)
     end
     local maxedbuffer = false
+    storm.net.tcpaddsenddone(csock, function (nbytes)
+        if maxedbuffer and storm.net.tcpoutstanding(csock) < SENDBUF_MAX then
+            storm.net.tcpsend(csock, "{ Shell Server: Send buffer is no longer full. }\n")
+        end
+        maxedbuffer = false
+    end)
     local outputhook = function (str)
         local outstanding = storm.net.tcpoutstanding(csock)
         if storm.net.tcpoutstanding(csock) < SENDBUF_MAX then
-            if maxedbuffer then
-                storm.net.tcpsend(csock, "{ Shell Server: Can send data again. }\n")
-            end
-            maxedbuffer = false
             storm.net.tcpsend(csock, str)
         else
             if not maxedbuffer then
