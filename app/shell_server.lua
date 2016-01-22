@@ -28,10 +28,16 @@ conn_lost_signal = do_nothing
 function connection_lost(how, sock)
     local fd = storm.net.tcpfd(sock)
     local c = cords[fd]
+    local addr
+    local port
     cords[fd] = nil
     sendfuncs[fd] = nil
     
     cord.cancel(c)
+    
+    storm.os.setoutputhook(broadcast)
+    addr, port = storm.net.tcppeerinfo(sock)
+    print("Client disconnected: " .. addr .. "." .. port)
     
     storm.net.tcpclose(sock)
     conn_lost_signal() -- signal waiting thread, if any, to start
@@ -41,17 +47,23 @@ end
 cord.new(function ()
     local clntsock
     local cfd
+    local addr
+    local port
+    print()
     while true do
         while true do
             storm.os.setoutputhook(broadcast)
-            clntsock, a, port, b = cord.await(storm.net.tcplistenaccept, lstnsock)
+            clntsock, _ = cord.await(storm.net.tcplistenaccept, lstnsock, 400)
             storm.os.setoutputhook(broadcast)
             if clntsock == nil then
                 -- Wait until a connection is lost
                 cord.await(function (cb) conn_lost_signal = cb end)
                 conn_lost_signal = do_nothing
             else
-                break
+		        addr, port = storm.net.tcppeerinfo(clntsock)
+		        -- Broadcast a message announcing the arrival of the user
+		        print("Client connected: " .. addr .. "." .. port)
+		        break
             end
         end
         -- At this point, clntsock is the client socket
@@ -62,7 +74,7 @@ cord.new(function ()
 end)
 
 local readchunksize = 100
-local SENDBUF_MAX = 700 -- Maximum number of queued bytes to send on any single socket
+local SENDBUF_MAX = 800 -- Maximum number of queued bytes to send on any single socket
 -- Accept commands from and send output to the remote user
 function remote_shell(csock)
     local fd = storm.net.tcpfd(csock)
@@ -71,19 +83,17 @@ function remote_shell(csock)
     end
     local maxedbuffer = false
     storm.net.tcpaddsenddone(csock, function (nbytes)
-        if maxedbuffer and storm.net.tcpoutstanding(csock) < SENDBUF_MAX then
+        if maxedbuffer and storm.net.tcpoutstanding(csock) < (SENDBUF_MAX / 2) then
             storm.net.tcpsend(csock, "{ Shell Server: Send buffer is no longer full. }\n")
+            maxedbuffer = false
         end
-        maxedbuffer = false
     end)
     local outputhook = function (str)
         local outstanding = storm.net.tcpoutstanding(csock)
-        if storm.net.tcpoutstanding(csock) < SENDBUF_MAX then
+        if not maxedbuffer and storm.net.tcpoutstanding(csock) < SENDBUF_MAX then
             storm.net.tcpsend(csock, str)
-        else
-            if not maxedbuffer then
-                storm.net.tcpsend(csock, "{ Shell Server: Send buffer full. Dropping characters... }\n")
-            end
+        elseif not maxedbuffer then
+            storm.net.tcpsend(csock, "{ Shell Server: Send buffer full. Dropping characters... }\n")
             maxedbuffer = true
         end
     end

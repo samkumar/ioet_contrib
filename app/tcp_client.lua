@@ -3,7 +3,7 @@ require "string"
 require "cord"
 tcpstr = require "tcpstr"
 
-server_ip = "fe80::0212:6d02:0000:4021"
+server_ip = "fe80::0212:6d02:0000:401c"
 -- server_ip = "2001:470:83ae:2:0212:6d02:0000:4021"
 -- server_ip = "2001:470:1f04:5f2::2"
 server_port = 32067
@@ -33,7 +33,7 @@ function connection_lost(how, socket)
 end
 
 function tryconnect(clsock)
-    cord.await(storm.net.tcpconnect, clsock, server_ip, 32067)
+    cord.await(storm.net.tcpconnect, clsock, server_ip, server_port, 300)
     local data = nil
     while data ~= "" do
         data = tcpstr:recv_string(clsock)
