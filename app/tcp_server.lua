@@ -12,7 +12,7 @@ storm.net.tcpbind(lstnsock, 32067)
 -- No call to listen() is needed
 cord.new(function ()
     while true do
-        clntsock = cord.await(storm.net.tcplistenaccept, lstnsock, 500)
+        clntsock = cord.await(storm.net.tcplistenaccept, lstnsock, 3000)
         if clntsock ~= nil then
             cord.new(function () server(clntsock) end)
         else
