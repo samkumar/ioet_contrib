@@ -14,8 +14,8 @@ function do_nothing() end
 -- Create server socket
 lstnsock = storm.net.tcppassivesocket()
 
--- Bind socket to port 46510
-storm.net.tcpbind(lstnsock, 46510)
+-- Bind socket to port 23
+storm.net.tcpbind(lstnsock, 23)
 
 function broadcast(str)
     for k, v in pairs(sendfuncs) do
@@ -32,13 +32,13 @@ function connection_lost(how, sock)
     local port
     cords[fd] = nil
     sendfuncs[fd] = nil
-    
+
     cord.cancel(c)
-    
+
     storm.os.setoutputhook(broadcast)
     addr, port = storm.net.tcppeerinfo(sock)
     print("Client disconnected: " .. addr .. "." .. port)
-    
+
     storm.net.tcpclose(sock)
     conn_lost_signal() -- signal waiting thread, if any, to start
 end
@@ -98,32 +98,32 @@ function remote_shell(csock)
         end
     end
     sendfuncs[fd] = outputhook
-    
+
     local buf
     local chunk
-    
+
     storm.net.tcpsend(csock, "\27[34;1mstormsh> \27[0m")
-    
+
     while true do
         if storm.net.tcphasrcvdfin(csock) then
             storm.net.tcpshutdown(csock, storm.net.SHUT_RDWR)
             cord.await(do_nothing) -- Wait until connection_lost cancels this cord
         end
-        
+
         storm.os.setoutputhook(broadcast) -- before yielding
-        
+
         -- Wait until something is in the receive buffer
         buf = cord.await(storm.net.tcprecvfull, csock, 1)
-        
+
         -- We may have yielded to another cord while waiting, so restore output redirection
         storm.os.setoutputhook(outputhook)
-        
+
         -- Then empty the receive buffer completely
         repeat
             _, chunk = storm.net.tcprecv(csock, readchunksize)
             buf = buf .. chunk
         until string.len(chunk) ~= readchunksize
-        
+
         -- Now, buf contains a line of input, so execute it
         storm.os.stormshell(buf)
     end
